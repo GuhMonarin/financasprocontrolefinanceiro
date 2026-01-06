@@ -1,32 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { defaultCategories } from '@/data/mockData';
-import { Transaction, TransactionType } from '@/types/finance';
+import { Category } from '@/hooks/useCategories';
+import { Transaction, useCreateTransaction, useUpdateTransaction } from '@/hooks/useTransactions';
 import { toast } from 'sonner';
 import * as Icons from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface TransactionModalProps {
   open: boolean;
   onClose: () => void;
   transaction?: Transaction;
-  onSave: (transaction: Partial<Transaction>) => void;
+  categories: Category[];
 }
 
-export function TransactionModal({ open, onClose, transaction, onSave }: TransactionModalProps) {
-  const [type, setType] = useState<TransactionType>(transaction?.type || 'expense');
+export function TransactionModal({ open, onClose, transaction, categories }: TransactionModalProps) {
+  const [type, setType] = useState<'income' | 'expense'>(transaction?.type || 'expense');
   const [amount, setAmount] = useState(transaction?.amount?.toString() || '');
-  const [categoryId, setCategoryId] = useState(transaction?.category?.id || '');
+  const [categoryId, setCategoryId] = useState(transaction?.category_id || '');
   const [description, setDescription] = useState(transaction?.description || '');
   const [date, setDate] = useState(transaction?.date || new Date().toISOString().split('T')[0]);
 
-  const filteredCategories = defaultCategories.filter(c => c.type === type);
+  const createTransaction = useCreateTransaction();
+  const updateTransaction = useUpdateTransaction();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const filteredCategories = categories.filter(c => c.type === type);
+
+  useEffect(() => {
+    if (transaction) {
+      setType(transaction.type);
+      setAmount(transaction.amount.toString());
+      setCategoryId(transaction.category_id || '');
+      setDescription(transaction.description);
+      setDate(transaction.date);
+    } else {
+      setType('expense');
+      setAmount('');
+      setCategoryId('');
+      setDescription('');
+      setDate(new Date().toISOString().split('T')[0]);
+    }
+  }, [transaction, open]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!amount || !categoryId || !description) {
@@ -34,26 +54,32 @@ export function TransactionModal({ open, onClose, transaction, onSave }: Transac
       return;
     }
 
-    const category = defaultCategories.find(c => c.id === categoryId);
-    if (!category) return;
-
-    onSave({
-      id: transaction?.id,
+    const data = {
       amount: parseFloat(amount),
-      category,
+      category_id: categoryId,
       description,
       date,
       type,
-    });
+    };
 
-    toast.success(transaction ? 'Transação atualizada!' : 'Transação adicionada!');
+    if (transaction) {
+      await updateTransaction.mutateAsync({ id: transaction.id, ...data });
+    } else {
+      await createTransaction.mutateAsync(data);
+    }
+    
     onClose();
   };
 
   const getIcon = (iconName: string) => {
-    const IconComponent = Icons[iconName as keyof typeof Icons] as React.ComponentType<{ className?: string }>;
+    const formattedName = iconName.split('-').map(part => 
+      part.charAt(0).toUpperCase() + part.slice(1)
+    ).join('');
+    const IconComponent = Icons[formattedName as keyof typeof Icons] as React.ComponentType<{ className?: string }>;
     return IconComponent ? <IconComponent className="w-4 h-4" /> : null;
   };
+
+  const isLoading = createTransaction.isPending || updateTransaction.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -66,7 +92,7 @@ export function TransactionModal({ open, onClose, transaction, onSave }: Transac
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <Tabs value={type} onValueChange={(v) => {
-            setType(v as TransactionType);
+            setType(v as 'income' | 'expense');
             setCategoryId('');
           }}>
             <TabsList className="grid w-full grid-cols-2">
@@ -132,11 +158,13 @@ export function TransactionModal({ open, onClose, transaction, onSave }: Transac
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
-              {transaction ? 'Salvar' : 'Adicionar'}
+            <Button type="submit" className="flex-1" disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : transaction ? 'Salvar' : 'Adicionar'}
             </Button>
           </div>
         </form>

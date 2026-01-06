@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { defaultCategories } from '@/data/mockData';
-import { Category, TransactionType } from '@/types/finance';
+import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
+import { 
+  useCategories, 
+  useCreateCategory, 
+  useUpdateCategory, 
+  useDeleteCategory,
+  Category 
+} from '@/hooks/useCategories';
 import * as Icons from 'lucide-react';
 import {
   AlertDialog,
@@ -34,7 +37,11 @@ const availableColors = [
 ];
 
 export function CategoryList() {
-  const [categories, setCategories] = useState<Category[]>(defaultCategories);
+  const { data: categories = [], isLoading } = useCategories();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | undefined>();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -42,7 +49,7 @@ export function CategoryList() {
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('more-horizontal');
   const [color, setColor] = useState(availableColors[0]);
-  const [type, setType] = useState<TransactionType>('expense');
+  const [type, setType] = useState<'income' | 'expense'>('expense');
 
   const getIcon = (iconName: string) => {
     const formattedName = iconName.split('-').map(part => 
@@ -69,39 +76,36 @@ export function CategoryList() {
     setModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) {
-      toast.error('Informe o nome da categoria');
       return;
     }
 
     if (selectedCategory) {
-      setCategories(prev => prev.map(c =>
-        c.id === selectedCategory.id ? { ...c, name, icon, color, type } : c
-      ));
-      toast.success('Categoria atualizada!');
+      await updateCategory.mutateAsync({ id: selectedCategory.id, name, icon, color, type });
     } else {
-      const newCategory: Category = {
-        id: Date.now().toString(),
-        name,
-        icon,
-        color,
-        type,
-      };
-      setCategories(prev => [...prev, newCategory]);
-      toast.success('Categoria criada!');
+      await createCategory.mutateAsync({ name, icon, color, type });
     }
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
-    toast.success('Categoria excluída');
+  const handleDelete = async (id: string) => {
+    await deleteCategory.mutateAsync(id);
     setDeleteId(null);
   };
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
   const incomeCategories = categories.filter(c => c.type === 'income');
+
+  const isSaving = createCategory.isPending || updateCategory.isPending;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -123,37 +127,41 @@ export function CategoryList() {
             <div className="w-3 h-3 rounded-full bg-expense" />
             Despesas
           </h3>
-          <div className="space-y-2">
-            {expenseCategories.map((category) => (
-              <div
-                key={category.id}
-                className="flex items-center justify-between p-3 rounded-xl hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${category.color}20`, color: category.color }}
-                  >
-                    {getIcon(category.icon)}
+          {expenseCategories.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Nenhuma categoria de despesa</p>
+          ) : (
+            <div className="space-y-2">
+              {expenseCategories.map((category) => (
+                <div
+                  key={category.id}
+                  className="flex items-center justify-between p-3 rounded-xl hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ backgroundColor: `${category.color}20`, color: category.color }}
+                    >
+                      {getIcon(category.icon)}
+                    </div>
+                    <span className="font-medium">{category.name}</span>
                   </div>
-                  <span className="font-medium">{category.name}</span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openModal(category)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteId(category.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openModal(category)}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => setDeleteId(category.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Income Categories */}
@@ -162,37 +170,41 @@ export function CategoryList() {
             <div className="w-3 h-3 rounded-full bg-income" />
             Receitas
           </h3>
-          <div className="space-y-2">
-            {incomeCategories.map((category) => (
-              <div
-                key={category.id}
-                className="flex items-center justify-between p-3 rounded-xl hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${category.color}20`, color: category.color }}
-                  >
-                    {getIcon(category.icon)}
+          {incomeCategories.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Nenhuma categoria de receita</p>
+          ) : (
+            <div className="space-y-2">
+              {incomeCategories.map((category) => (
+                <div
+                  key={category.id}
+                  className="flex items-center justify-between p-3 rounded-xl hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ backgroundColor: `${category.color}20`, color: category.color }}
+                    >
+                      {getIcon(category.icon)}
+                    </div>
+                    <span className="font-medium">{category.name}</span>
                   </div>
-                  <span className="font-medium">{category.name}</span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openModal(category)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteId(category.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openModal(category)}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => setDeleteId(category.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -206,7 +218,7 @@ export function CategoryList() {
           </DialogHeader>
 
           <div className="space-y-5">
-            <Tabs value={type} onValueChange={(v) => setType(v as TransactionType)}>
+            <Tabs value={type} onValueChange={(v) => setType(v as 'income' | 'expense')}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="expense" className="data-[state=active]:bg-expense data-[state=active]:text-expense-foreground">
                   Despesa
@@ -264,11 +276,11 @@ export function CategoryList() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button variant="outline" onClick={() => setModalOpen(false)} className="flex-1">
+              <Button variant="outline" onClick={() => setModalOpen(false)} className="flex-1" disabled={isSaving}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave} className="flex-1">
-                {selectedCategory ? 'Salvar' : 'Criar'}
+              <Button onClick={handleSave} className="flex-1" disabled={isSaving}>
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : selectedCategory ? 'Salvar' : 'Criar'}
               </Button>
             </div>
           </div>

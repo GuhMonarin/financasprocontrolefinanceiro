@@ -6,15 +6,46 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { User, Bell, Shield, Palette, LogOut } from 'lucide-react';
+import { User, Bell, Shield, LogOut, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Settings = () => {
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const { data: profile, refetch } = useProfile();
+  
+  const [fullName, setFullName] = useState(profile?.full_name || '');
   const [notifications, setNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    toast.success('Configurações salvas!');
+  const handleSave = async () => {
+    if (!profile) return;
+    
+    setSaving(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ full_name: fullName })
+      .eq('id', profile.id);
+    
+    setSaving(false);
+    
+    if (error) {
+      toast.error('Erro ao salvar');
+    } else {
+      toast.success('Perfil atualizado!');
+      refetch();
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    toast.success('Logout realizado');
+    navigate('/auth');
   };
 
   return (
@@ -41,14 +72,21 @@ const Settings = () => {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome</Label>
-                <Input id="name" defaultValue="João Paulo" />
+                <Input 
+                  id="name" 
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
-                <Input id="email" type="email" defaultValue="joao@email.com" />
+                <Input id="email" type="email" value={profile?.email || ''} disabled />
               </div>
             </div>
-            <Button onClick={handleSave}>Salvar Alterações</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar Alterações
+            </Button>
           </div>
         </Card>
 
@@ -109,7 +147,7 @@ const Settings = () => {
               <h3 className="font-semibold">Sair da Conta</h3>
               <p className="text-sm text-muted-foreground">Encerrar sessão atual</p>
             </div>
-            <Button variant="destructive" className="gap-2">
+            <Button variant="destructive" className="gap-2" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
               Sair
             </Button>
