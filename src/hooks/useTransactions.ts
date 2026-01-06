@@ -105,21 +105,34 @@ export function useCreateTransaction() {
         return data;
       }
       
-      // If it's a fixed recurring transaction, just mark it as recurring
+      // If it's a fixed recurring transaction, create 12 months of transactions
       if (is_recurring && recurrence_type === 'fixed') {
-        const { data, error } = await supabase
-          .from('transactions')
-          .insert({
+        const recurringGroupId = crypto.randomUUID();
+        const transactions = [];
+        const baseDate = new Date(transaction.date);
+        const monthsToCreate = 12; // Create 12 months of fixed transactions
+        
+        for (let i = 0; i < monthsToCreate; i++) {
+          const transactionDate = new Date(baseDate);
+          transactionDate.setMonth(baseDate.getMonth() + i);
+          
+          transactions.push({
             ...baseTransaction,
             user_id: user.id,
             is_recurring: true,
-            recurrence_type: 'fixed',
-            recurring_group_id: crypto.randomUUID(),
-          })
-          .select()
-          .single();
+            recurrence_type: 'fixed' as const,
+            recurring_group_id: recurringGroupId,
+            date: transactionDate.toISOString().split('T')[0],
+          });
+        }
+        
+        const { data, error } = await supabase
+          .from('transactions')
+          .insert(transactions)
+          .select();
         
         if (error) throw error;
+        toast.success(`Transação fixa criada para os próximos ${monthsToCreate} meses!`);
         return data;
       }
       
