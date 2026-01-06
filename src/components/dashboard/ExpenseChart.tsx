@@ -1,16 +1,27 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { mockTransactions, formatCurrency } from '@/data/mockData';
+import { Transaction } from '@/hooks/useTransactions';
 
-export function ExpenseChart() {
+interface ExpenseChartProps {
+  transactions: Transaction[];
+}
+
+const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};
+
+export function ExpenseChart({ transactions }: ExpenseChartProps) {
   // Calculate expenses by category
-  const expensesByCategory = mockTransactions
-    .filter(t => t.type === 'expense')
+  const expensesByCategory = transactions
+    .filter(t => t.type === 'expense' && t.category)
     .reduce((acc, t) => {
-      const categoryName = t.category.name;
+      const categoryName = t.category!.name;
       if (!acc[categoryName]) {
-        acc[categoryName] = { name: categoryName, value: 0, color: t.category.color };
+        acc[categoryName] = { name: categoryName, value: 0, color: t.category!.color };
       }
-      acc[categoryName].value += t.amount;
+      acc[categoryName].value += Number(t.amount);
       return acc;
     }, {} as Record<string, { name: string; value: number; color: string }>);
 
@@ -49,6 +60,17 @@ export function ExpenseChart() {
       </ul>
     );
   };
+
+  if (chartData.length === 0) {
+    return (
+      <div className="bg-card rounded-2xl p-6 card-shadow animate-in">
+        <h3 className="text-lg font-semibold mb-4">Gastos por Categoria</h3>
+        <div className="h-[280px] flex items-center justify-center">
+          <p className="text-muted-foreground">Nenhuma despesa registrada</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-2xl p-6 card-shadow animate-in">
