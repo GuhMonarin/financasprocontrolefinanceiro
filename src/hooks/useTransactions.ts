@@ -14,6 +14,11 @@ export interface Transaction {
   type: 'income' | 'expense';
   created_at: string;
   updated_at: string;
+  is_recurring: boolean;
+  recurrence_type: 'fixed' | 'installment' | null;
+  installment_count: number | null;
+  current_installment: number | null;
+  recurring_group_id: string | null;
   category?: Category | null;
 }
 
@@ -60,14 +65,71 @@ export function useCreateTransaction() {
       description: string;
       date: string;
       type: 'income' | 'expense';
+      is_recurring?: boolean;
+      recurrence_type?: 'fixed' | 'installment' | null;
+      installment_count?: number | null;
     }) => {
       if (!user) throw new Error('User not authenticated');
       
+      const { is_recurring, recurrence_type, installment_count, ...baseTransaction } = transaction;
+      
+      // If it's a recurring transaction with installments, create multiple transactions
+      if (is_recurring && recurrence_type === 'installment' && installment_count) {
+        const recurringGroupId = crypto.randomUUID();
+        const transactions = [];
+        const baseDate = new Date(transaction.date);
+        
+        for (let i = 0; i < installment_count; i++) {
+          const installmentDate = new Date(baseDate);
+          installmentDate.setMonth(baseDate.getMonth() + i);
+          
+          transactions.push({
+            ...baseTransaction,
+            user_id: user.id,
+            is_recurring: true,
+            recurrence_type: 'installment' as const,
+            installment_count,
+            current_installment: i + 1,
+            recurring_group_id: recurringGroupId,
+            date: installmentDate.toISOString().split('T')[0],
+            description: `${transaction.description} (${i + 1}/${installment_count})`,
+          });
+        }
+        
+        const { data, error } = await supabase
+          .from('transactions')
+          .insert(transactions)
+          .select();
+        
+        if (error) throw error;
+        return data;
+      }
+      
+      // If it's a fixed recurring transaction, just mark it as recurring
+      if (is_recurring && recurrence_type === 'fixed') {
+        const { data, error } = await supabase
+          .from('transactions')
+          .insert({
+            ...baseTransaction,
+            user_id: user.id,
+            is_recurring: true,
+            recurrence_type: 'fixed',
+            recurring_group_id: crypto.randomUUID(),
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      }
+      
+      // Regular transaction
       const { data, error } = await supabase
         .from('transactions')
         .insert({
-          ...transaction,
+          ...baseTransaction,
           user_id: user.id,
+          is_recurring: false,
         })
         .select()
         .single();
@@ -75,9 +137,13 @@ export function useCreateTransaction() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success('Transação adicionada!');
+      if (variables.is_recurring && variables.recurrence_type === 'installment') {
+        toast.success(`${variables.installment_count} parcelas criadas!`);
+      } else {
+        toast.success('Transação adicionada!');
+      }
     },
     onError: () => {
       toast.error('Erro ao adicionar transação');
