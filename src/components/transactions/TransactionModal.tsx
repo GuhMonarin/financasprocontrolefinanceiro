@@ -5,11 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Category } from '@/hooks/useCategories';
 import { Transaction, useCreateTransaction, useUpdateTransaction } from '@/hooks/useTransactions';
 import { toast } from 'sonner';
 import * as Icons from 'lucide-react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Repeat, CreditCard } from 'lucide-react';
 
 interface TransactionModalProps {
   open: boolean;
@@ -24,6 +26,9 @@ export function TransactionModal({ open, onClose, transaction, categories }: Tra
   const [categoryId, setCategoryId] = useState(transaction?.category_id || '');
   const [description, setDescription] = useState(transaction?.description || '');
   const [date, setDate] = useState(transaction?.date || new Date().toISOString().split('T')[0]);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState<'fixed' | 'installment'>('fixed');
+  const [installmentCount, setInstallmentCount] = useState('2');
 
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
@@ -37,12 +42,18 @@ export function TransactionModal({ open, onClose, transaction, categories }: Tra
       setCategoryId(transaction.category_id || '');
       setDescription(transaction.description);
       setDate(transaction.date);
+      setIsRecurring(false);
+      setRecurrenceType('fixed');
+      setInstallmentCount('2');
     } else {
       setType('expense');
       setAmount('');
       setCategoryId('');
       setDescription('');
       setDate(new Date().toISOString().split('T')[0]);
+      setIsRecurring(false);
+      setRecurrenceType('fixed');
+      setInstallmentCount('2');
     }
   }, [transaction, open]);
 
@@ -54,16 +65,27 @@ export function TransactionModal({ open, onClose, transaction, categories }: Tra
       return;
     }
 
+    if (isRecurring && recurrenceType === 'installment') {
+      const count = parseInt(installmentCount);
+      if (isNaN(count) || count < 2 || count > 48) {
+        toast.error('Número de parcelas deve ser entre 2 e 48');
+        return;
+      }
+    }
+
     const data = {
       amount: parseFloat(amount),
       category_id: categoryId,
       description,
       date,
       type,
+      is_recurring: isRecurring,
+      recurrence_type: isRecurring ? recurrenceType : null,
+      installment_count: isRecurring && recurrenceType === 'installment' ? parseInt(installmentCount) : null,
     };
 
     if (transaction) {
-      await updateTransaction.mutateAsync({ id: transaction.id, ...data });
+      await updateTransaction.mutateAsync({ id: transaction.id, amount: data.amount, category_id: data.category_id, description: data.description, date: data.date, type: data.type });
     } else {
       await createTransaction.mutateAsync(data);
     }
@@ -148,7 +170,7 @@ export function TransactionModal({ open, onClose, transaction, categories }: Tra
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="date">Data</Label>
+            <Label htmlFor="date">{isRecurring && recurrenceType === 'fixed' ? 'Data de Vencimento' : isRecurring && recurrenceType === 'installment' ? 'Data da 1ª Parcela' : 'Data'}</Label>
             <Input
               id="date"
               type="date"
@@ -156,6 +178,69 @@ export function TransactionModal({ open, onClose, transaction, categories }: Tra
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
+
+          {/* Recurring options - only for new transactions */}
+          {!transaction && (
+            <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="recurring"
+                  checked={isRecurring}
+                  onCheckedChange={(checked) => setIsRecurring(checked === true)}
+                />
+                <Label htmlFor="recurring" className="cursor-pointer font-medium">
+                  Transação recorrente ou parcelada
+                </Label>
+              </div>
+
+              {isRecurring && (
+                <RadioGroup
+                  value={recurrenceType}
+                  onValueChange={(v) => setRecurrenceType(v as 'fixed' | 'installment')}
+                  className="space-y-3"
+                >
+                  <div className="flex items-start space-x-3 p-3 rounded-md border border-border bg-background">
+                    <RadioGroupItem value="fixed" id="fixed" className="mt-0.5" />
+                    <div className="flex-1">
+                      <Label htmlFor="fixed" className="cursor-pointer flex items-center gap-2 font-medium">
+                        <Repeat className="w-4 h-4 text-primary" />
+                        Fixa Mensal
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Repete todo mês na mesma data de vencimento
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3 p-3 rounded-md border border-border bg-background">
+                    <RadioGroupItem value="installment" id="installment" className="mt-0.5" />
+                    <div className="flex-1">
+                      <Label htmlFor="installment" className="cursor-pointer flex items-center gap-2 font-medium">
+                        <CreditCard className="w-4 h-4 text-primary" />
+                        Parcelado
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Divide em várias parcelas mensais
+                      </p>
+                      {recurrenceType === 'installment' && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="2"
+                            max="48"
+                            value={installmentCount}
+                            onChange={(e) => setInstallmentCount(e.target.value)}
+                            className="w-20"
+                          />
+                          <span className="text-sm text-muted-foreground">parcelas</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </RadioGroup>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isLoading}>

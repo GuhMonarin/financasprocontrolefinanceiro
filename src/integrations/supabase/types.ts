@@ -82,9 +82,14 @@ export type Database = {
           amount: number
           category_id: string | null
           created_at: string
+          current_installment: number | null
           date: string
           description: string
           id: string
+          installment_count: number | null
+          is_recurring: boolean
+          recurrence_type: string | null
+          recurring_group_id: string | null
           type: string
           updated_at: string
           user_id: string
@@ -93,9 +98,14 @@ export type Database = {
           amount: number
           category_id?: string | null
           created_at?: string
+          current_installment?: number | null
           date?: string
           description: string
           id?: string
+          installment_count?: number | null
+          is_recurring?: boolean
+          recurrence_type?: string | null
+          recurring_group_id?: string | null
           type: string
           updated_at?: string
           user_id: string
@@ -104,9 +114,14 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string
+          current_installment?: number | null
           date?: string
           description?: string
           id?: string
+          installment_count?: number | null
+          is_recurring?: boolean
+          recurrence_type?: string | null
+          recurring_group_id?: string | null
           type?: string
           updated_at?: string
           user_id?: string
