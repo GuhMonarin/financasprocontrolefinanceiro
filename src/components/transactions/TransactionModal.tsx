@@ -67,8 +67,8 @@ export function TransactionModal({ open, onClose, transaction, categories }: Tra
 
     if (isRecurring && recurrenceType === 'installment') {
       const count = parseInt(installmentCount);
-      if (isNaN(count) || count < 2 || count > 48) {
-        toast.error('Número de parcelas deve ser entre 2 e 48');
+      if (isNaN(count) || count < 2 || count > 99) {
+        toast.error('Número de parcelas deve ser entre 2 e 99');
         return;
       }
     }
@@ -227,7 +227,7 @@ export function TransactionModal({ open, onClose, transaction, categories }: Tra
                           <Input
                             type="number"
                             min="2"
-                            max="48"
+                            max="99"
                             value={installmentCount}
                             onChange={(e) => setInstallmentCount(e.target.value)}
                             className="w-20"
