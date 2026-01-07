@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { TransactionModal } from './TransactionModal';
+import { TransactionFilters, TransactionFiltersState } from './TransactionFilters';
 import { useTransactions, useDeleteTransaction, Transaction } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import * as Icons from 'lucide-react';
@@ -32,6 +33,13 @@ export function TransactionList() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<TransactionFiltersState>({
+    search: '',
+    type: 'all',
+    categoryId: 'all',
+    startDate: undefined,
+    endDate: undefined,
+  });
 
   const getIcon = (iconName: string) => {
     const formattedName = iconName.split('-').map(part => 
@@ -51,7 +59,41 @@ export function TransactionList() {
     setModalOpen(true);
   };
 
-  const groupedTransactions = transactions.reduce((groups, transaction) => {
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((transaction) => {
+      // Search filter
+      if (filters.search && !transaction.description.toLowerCase().includes(filters.search.toLowerCase())) {
+        return false;
+      }
+      
+      // Type filter
+      if (filters.type !== 'all' && transaction.type !== filters.type) {
+        return false;
+      }
+      
+      // Category filter
+      if (filters.categoryId !== 'all' && transaction.category_id !== filters.categoryId) {
+        return false;
+      }
+      
+      // Date range filter
+      const transactionDate = new Date(transaction.date + 'T00:00:00');
+      if (filters.startDate && transactionDate < filters.startDate) {
+        return false;
+      }
+      if (filters.endDate) {
+        const endOfDay = new Date(filters.endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (transactionDate > endOfDay) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [transactions, filters]);
+
+  const groupedTransactions = filteredTransactions.reduce((groups, transaction) => {
     const date = transaction.date;
     if (!groups[date]) {
       groups[date] = [];
@@ -85,12 +127,24 @@ export function TransactionList() {
         </Button>
       </div>
 
-      {transactions.length === 0 ? (
+      <TransactionFilters 
+        filters={filters} 
+        onFiltersChange={setFilters} 
+        categories={categories} 
+      />
+
+      {filteredTransactions.length === 0 ? (
         <div className="bg-card rounded-2xl p-12 card-shadow text-center">
-          <p className="text-muted-foreground">Nenhuma transação encontrada</p>
-          <Button onClick={() => setModalOpen(true)} variant="outline" className="mt-4">
-            Adicionar primeira transação
-          </Button>
+          <p className="text-muted-foreground">
+            {transactions.length === 0 
+              ? 'Nenhuma transação encontrada' 
+              : 'Nenhuma transação corresponde aos filtros'}
+          </p>
+          {transactions.length === 0 && (
+            <Button onClick={() => setModalOpen(true)} variant="outline" className="mt-4">
+              Adicionar primeira transação
+            </Button>
+          )}
         </div>
       ) : (
         <div className="bg-card rounded-2xl card-shadow overflow-hidden">
