@@ -76,7 +76,7 @@ export function ReportsView() {
 
   const balance = totalIncome - totalExpense;
 
-  // Category breakdown
+  // Category breakdown - Expenses
   const expensesByCategory = transactions
     .filter(t => t.type === 'expense' && t.category)
     .reduce((acc, t) => {
@@ -88,15 +88,32 @@ export function ReportsView() {
       return acc;
     }, {} as Record<string, { name: string; value: number; color: string }>);
 
-  const categoryData = Object.values(expensesByCategory).sort((a, b) => b.value - a.value);
+  const expenseCategoryData = Object.values(expensesByCategory).sort((a, b) => b.value - a.value);
+
+  // Category breakdown - Income
+  const incomeByCategory = transactions
+    .filter(t => t.type === 'income' && t.category)
+    .reduce((acc, t) => {
+      const categoryName = t.category!.name;
+      if (!acc[categoryName]) {
+        acc[categoryName] = { name: categoryName, value: 0, color: t.category!.color };
+      }
+      acc[categoryName].value += Number(t.amount);
+      return acc;
+    }, {} as Record<string, { name: string; value: number; color: string }>);
+
+  const incomeCategoryData = Object.values(incomeByCategory).sort((a, b) => b.value - a.value);
 
   // Filter transactions by selected category
+  const [selectedCategoryType, setSelectedCategoryType] = useState<'expense' | 'income'>('expense');
+  
   const categoryTransactions = selectedCategory
-    ? transactions.filter(t => t.type === 'expense' && t.category?.name === selectedCategory)
+    ? transactions.filter(t => t.type === selectedCategoryType && t.category?.name === selectedCategory)
     : [];
 
-  const handleCategoryClick = (categoryName: string) => {
+  const handleCategoryClick = (categoryName: string, type: 'expense' | 'income') => {
     setSelectedCategory(categoryName);
+    setSelectedCategoryType(type);
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -174,16 +191,16 @@ export function ReportsView() {
         </Card>
       </div>
 
-      {categoryData.length > 0 ? (
+      {/* Expenses Section */}
+      {expenseCategoryData.length > 0 ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Category Breakdown */}
           <Card className="p-6 card-shadow">
             <h3 className="text-lg font-semibold mb-4">Despesas por Categoria</h3>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={categoryData}
+                    data={expenseCategoryData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -191,9 +208,9 @@ export function ReportsView() {
                     paddingAngle={2}
                     dataKey="value"
                     style={{ cursor: 'pointer' }}
-                    onClick={(data) => handleCategoryClick(data.name)}
+                    onClick={(data) => handleCategoryClick(data.name, 'expense')}
                   >
-                    {categoryData.map((entry, index) => (
+                    {expenseCategoryData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -206,17 +223,16 @@ export function ReportsView() {
             </div>
           </Card>
 
-          {/* Category Details */}
           <Card className="p-6 card-shadow">
-            <h3 className="text-lg font-semibold mb-4">Detalhamento</h3>
+            <h3 className="text-lg font-semibold mb-4">Detalhamento - Despesas</h3>
             <div className="space-y-4">
-              {categoryData.map((cat) => {
+              {expenseCategoryData.map((cat) => {
                 const percentage = totalExpense > 0 ? (cat.value / totalExpense * 100) : 0;
                 return (
                   <div 
                     key={cat.name} 
                     className="space-y-2 cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-lg transition-colors"
-                    onClick={() => handleCategoryClick(cat.name)}
+                    onClick={() => handleCategoryClick(cat.name, 'expense')}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{cat.name}</span>
@@ -241,10 +257,79 @@ export function ReportsView() {
           </Card>
         </div>
       ) : (
-        <Card className="p-12 card-shadow text-center">
-          <p className="text-muted-foreground">
-            Nenhuma transação encontrada para {months[parseInt(selectedMonth)].label} de {selectedYear}
-          </p>
+        <Card className="p-8 card-shadow text-center">
+          <p className="text-muted-foreground">Nenhuma despesa encontrada para {months[parseInt(selectedMonth)].label} de {selectedYear}</p>
+        </Card>
+      )}
+
+      {/* Income Section */}
+      {incomeCategoryData.length > 0 ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="p-6 card-shadow">
+            <h3 className="text-lg font-semibold mb-4">Receitas por Categoria</h3>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={incomeCategoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="value"
+                    style={{ cursor: 'pointer' }}
+                    onClick={(data) => handleCategoryClick(data.name, 'income')}
+                  >
+                    {incomeCategoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    formatter={(value) => <span className="text-sm text-muted-foreground">{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <Card className="p-6 card-shadow">
+            <h3 className="text-lg font-semibold mb-4">Detalhamento - Receitas</h3>
+            <div className="space-y-4">
+              {incomeCategoryData.map((cat) => {
+                const percentage = totalIncome > 0 ? (cat.value / totalIncome * 100) : 0;
+                return (
+                  <div 
+                    key={cat.name} 
+                    className="space-y-2 cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-lg transition-colors"
+                    onClick={() => handleCategoryClick(cat.name, 'income')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{cat.name}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-muted-foreground">{percentage.toFixed(1)}%</span>
+                        <span className="font-semibold">{formatCurrency(cat.value)}</span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ 
+                          width: `${percentage}%`,
+                          backgroundColor: cat.color
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      ) : (
+        <Card className="p-8 card-shadow text-center">
+          <p className="text-muted-foreground">Nenhuma receita encontrada para {months[parseInt(selectedMonth)].label} de {selectedYear}</p>
         </Card>
       )}
 
@@ -253,7 +338,7 @@ export function ReportsView() {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
-              Transações - {selectedCategory}
+              {selectedCategoryType === 'expense' ? 'Despesas' : 'Receitas'} - {selectedCategory}
               <span className="text-muted-foreground font-normal ml-2">
                 ({months[parseInt(selectedMonth)].label} {selectedYear})
               </span>
@@ -273,7 +358,7 @@ export function ReportsView() {
                   <TableRow key={t.id}>
                     <TableCell>{formatDate(t.date)}</TableCell>
                     <TableCell>{t.description}</TableCell>
-                    <TableCell className="text-right font-medium text-expense">
+                    <TableCell className={`text-right font-medium ${selectedCategoryType === 'expense' ? 'text-expense' : 'text-income'}`}>
                       {formatCurrency(Number(t.amount))}
                     </TableCell>
                   </TableRow>
@@ -289,7 +374,7 @@ export function ReportsView() {
           <div className="border-t pt-4 mt-4">
             <div className="flex justify-between items-center">
               <span className="font-medium">Total</span>
-              <span className="font-bold text-expense">
+              <span className={`font-bold ${selectedCategoryType === 'expense' ? 'text-expense' : 'text-income'}`}>
                 {formatCurrency(categoryTransactions.reduce((sum, t) => sum + Number(t.amount), 0))}
               </span>
             </div>
