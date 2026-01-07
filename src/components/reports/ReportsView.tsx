@@ -1,21 +1,30 @@
 import { useState } from 'react';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  Tooltip
 } from 'recharts';
-import { useTransactions } from '@/hooks/useTransactions';
+import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const months = [
   { value: '0', label: 'Janeiro' },
@@ -41,10 +50,16 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
+const formatDate = (dateStr: string): string => {
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('pt-BR');
+};
+
 export function ReportsView() {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth().toString());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear().toString());
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const { data: transactions = [], isLoading } = useTransactions(
     parseInt(selectedMonth), 
@@ -74,6 +89,15 @@ export function ReportsView() {
     }, {} as Record<string, { name: string; value: number; color: string }>);
 
   const categoryData = Object.values(expensesByCategory).sort((a, b) => b.value - a.value);
+
+  // Filter transactions by selected category
+  const categoryTransactions = selectedCategory
+    ? transactions.filter(t => t.type === 'expense' && t.category?.name === selectedCategory)
+    : [];
+
+  const handleCategoryClick = (categoryName: string) => {
+    setSelectedCategory(categoryName);
+  };
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -166,6 +190,8 @@ export function ReportsView() {
                     outerRadius={100}
                     paddingAngle={2}
                     dataKey="value"
+                    style={{ cursor: 'pointer' }}
+                    onClick={(data) => handleCategoryClick(data.name)}
                   >
                     {categoryData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -187,7 +213,11 @@ export function ReportsView() {
               {categoryData.map((cat) => {
                 const percentage = totalExpense > 0 ? (cat.value / totalExpense * 100) : 0;
                 return (
-                  <div key={cat.name} className="space-y-2">
+                  <div 
+                    key={cat.name} 
+                    className="space-y-2 cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-lg transition-colors"
+                    onClick={() => handleCategoryClick(cat.name)}
+                  >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{cat.name}</span>
                       <div className="flex items-center gap-3">
@@ -217,6 +247,55 @@ export function ReportsView() {
           </p>
         </Card>
       )}
+
+      {/* Category Transactions Modal */}
+      <Dialog open={!!selectedCategory} onOpenChange={() => setSelectedCategory(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              Transações - {selectedCategory}
+              <span className="text-muted-foreground font-normal ml-2">
+                ({months[parseInt(selectedMonth)].label} {selectedYear})
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto flex-1">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {categoryTransactions.map((t) => (
+                  <TableRow key={t.id}>
+                    <TableCell>{formatDate(t.date)}</TableCell>
+                    <TableCell>{t.description}</TableCell>
+                    <TableCell className="text-right font-medium text-expense">
+                      {formatCurrency(Number(t.amount))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {categoryTransactions.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                Nenhuma transação encontrada
+              </p>
+            )}
+          </div>
+          <div className="border-t pt-4 mt-4">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Total</span>
+              <span className="font-bold text-expense">
+                {formatCurrency(categoryTransactions.reduce((sum, t) => sum + Number(t.amount), 0))}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
