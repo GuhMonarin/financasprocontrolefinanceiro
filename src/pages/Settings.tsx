@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,22 +6,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { User, Bell, Shield, LogOut, Loader2 } from 'lucide-react';
+import { User, Bell, Shield, LogOut, Loader2, Sun, Moon, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useTheme } from 'next-themes';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { data: profile, refetch } = useProfile();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [notifications, setNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSave = async () => {
     if (!profile) return;
@@ -119,6 +127,48 @@ const Settings = () => {
               <Switch checked={emailUpdates} onCheckedChange={setEmailUpdates} />
             </div>
           </div>
+        </Card>
+
+        {/* Appearance */}
+        <Card className="p-6 card-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Sun className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Aparência</h3>
+              <p className="text-sm text-muted-foreground">Personalize o visual do app</p>
+            </div>
+          </div>
+
+          {mounted && (
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant={theme === 'light' ? 'default' : 'outline'}
+                className="gap-2"
+                onClick={() => setTheme('light')}
+              >
+                <Sun className="w-4 h-4" />
+                Claro
+              </Button>
+              <Button
+                variant={theme === 'dark' ? 'default' : 'outline'}
+                className="gap-2"
+                onClick={() => setTheme('dark')}
+              >
+                <Moon className="w-4 h-4" />
+                Escuro
+              </Button>
+              <Button
+                variant={theme === 'system' ? 'default' : 'outline'}
+                className="gap-2"
+                onClick={() => setTheme('system')}
+              >
+                <Monitor className="w-4 h-4" />
+                Sistema
+              </Button>
+            </div>
+          )}
         </Card>
 
         {/* Security */}
