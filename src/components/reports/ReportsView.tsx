@@ -10,7 +10,8 @@ import {
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Repeat, CreditCard } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -357,7 +358,23 @@ export function ReportsView() {
                 {categoryTransactions.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell>{formatDate(t.date)}</TableCell>
-                    <TableCell>{t.description}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span>{t.description}</span>
+                        {t.is_recurring && !t.installment_count && (
+                          <Badge variant="secondary" className="gap-1 text-xs px-2 py-0.5">
+                            <Repeat className="w-3 h-3" />
+                            Fixa
+                          </Badge>
+                        )}
+                        {t.installment_count && t.current_installment && (
+                          <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5">
+                            <CreditCard className="w-3 h-3" />
+                            {t.current_installment}/{t.installment_count}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className={`text-right font-medium ${selectedCategoryType === 'expense' ? 'text-expense' : 'text-income'}`}>
                       {formatCurrency(Number(t.amount))}
                     </TableCell>
