@@ -75,15 +75,15 @@ export function ExpenseChart({ transactions }: ExpenseChartProps) {
   return (
     <div className="bg-card rounded-2xl p-6 card-shadow animate-in">
       <h3 className="text-lg font-semibold mb-4">Gastos por Categoria</h3>
-      <div className="h-[280px]">
+      <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+          <PieChart margin={{ top: 20, right: 0, bottom: 0, left: 0 }}>
             <Pie
               data={chartData}
               cx="50%"
-              cy="45%"
-              innerRadius={60}
-              outerRadius={90}
+              cy="40%"
+              innerRadius={55}
+              outerRadius={85}
               paddingAngle={3}
               dataKey="value"
               strokeWidth={0}
