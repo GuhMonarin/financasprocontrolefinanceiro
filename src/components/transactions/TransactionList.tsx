@@ -37,8 +37,8 @@ export function TransactionList() {
     search: '',
     type: 'all',
     categoryId: 'all',
-    startDate: undefined,
-    endDate: undefined,
+    month: 'all',
+    year: 'all',
   });
 
   const getIcon = (iconName: string) => {
@@ -76,17 +76,13 @@ export function TransactionList() {
         return false;
       }
       
-      // Date range filter
+      // Month/Year filter
       const transactionDate = new Date(transaction.date + 'T00:00:00');
-      if (filters.startDate && transactionDate < filters.startDate) {
+      if (filters.month !== 'all' && transactionDate.getMonth() !== parseInt(filters.month)) {
         return false;
       }
-      if (filters.endDate) {
-        const endOfDay = new Date(filters.endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        if (transactionDate > endOfDay) {
-          return false;
-        }
+      if (filters.year !== 'all' && transactionDate.getFullYear() !== parseInt(filters.year)) {
+        return false;
       }
       
       return true;

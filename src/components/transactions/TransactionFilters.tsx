@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Search, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,16 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
 
 interface Category {
   id: string;
@@ -30,8 +19,8 @@ export interface TransactionFiltersState {
   search: string;
   type: 'all' | 'income' | 'expense';
   categoryId: string;
-  startDate: Date | undefined;
-  endDate: Date | undefined;
+  month: string;
+  year: string;
 }
 
 interface TransactionFiltersProps {
@@ -40,21 +29,39 @@ interface TransactionFiltersProps {
   categories: Category[];
 }
 
+const months = [
+  { value: 'all', label: 'Todos os meses' },
+  { value: '0', label: 'Janeiro' },
+  { value: '1', label: 'Fevereiro' },
+  { value: '2', label: 'Março' },
+  { value: '3', label: 'Abril' },
+  { value: '4', label: 'Maio' },
+  { value: '5', label: 'Junho' },
+  { value: '6', label: 'Julho' },
+  { value: '7', label: 'Agosto' },
+  { value: '8', label: 'Setembro' },
+  { value: '9', label: 'Outubro' },
+  { value: '10', label: 'Novembro' },
+  { value: '11', label: 'Dezembro' },
+];
+
+const years = ['all', '2024', '2025', '2026'];
+
 export function TransactionFilters({ filters, onFiltersChange, categories }: TransactionFiltersProps) {
   const hasActiveFilters = 
     filters.search !== '' || 
     filters.type !== 'all' || 
     filters.categoryId !== 'all' || 
-    filters.startDate !== undefined || 
-    filters.endDate !== undefined;
+    filters.month !== 'all' || 
+    filters.year !== 'all';
 
   const clearFilters = () => {
     onFiltersChange({
       search: '',
       type: 'all',
       categoryId: 'all',
-      startDate: undefined,
-      endDate: undefined,
+      month: 'all',
+      year: 'all',
     });
   };
 
@@ -111,55 +118,40 @@ export function TransactionFilters({ filters, onFiltersChange, categories }: Tra
           </SelectContent>
         </Select>
 
-        {/* Date Range - Start */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[140px] justify-start text-left font-normal",
-                !filters.startDate && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.startDate ? format(filters.startDate, "dd/MM/yyyy") : "Data início"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={filters.startDate}
-              onSelect={(date) => onFiltersChange({ ...filters, startDate: date })}
-              locale={ptBR}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        {/* Month Filter */}
+        <Select
+          value={filters.month}
+          onValueChange={(value) => onFiltersChange({ ...filters, month: value })}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Mês" />
+          </SelectTrigger>
+          <SelectContent>
+            {months.map((month) => (
+              <SelectItem key={month.value} value={month.value}>
+                {month.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {/* Date Range - End */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[140px] justify-start text-left font-normal",
-                !filters.endDate && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.endDate ? format(filters.endDate, "dd/MM/yyyy") : "Data fim"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={filters.endDate}
-              onSelect={(date) => onFiltersChange({ ...filters, endDate: date })}
-              locale={ptBR}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        {/* Year Filter */}
+        <Select
+          value={filters.year}
+          onValueChange={(value) => onFiltersChange({ ...filters, year: value })}
+        >
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder="Ano" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            {years.filter(y => y !== 'all').map((year) => (
+              <SelectItem key={year} value={year}>
+                {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* Clear Filters */}
         {hasActiveFilters && (
