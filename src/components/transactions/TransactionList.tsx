@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Loader2, Repeat, CreditCard } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { TransactionModal } from './TransactionModal';
@@ -172,7 +173,21 @@ export function TransactionList() {
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium">{transaction.description}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium">{transaction.description}</p>
+                        {transaction.is_recurring && !transaction.installment_count && (
+                          <Badge variant="secondary" className="gap-1 text-xs px-2 py-0.5">
+                            <Repeat className="w-3 h-3" />
+                            Fixa
+                          </Badge>
+                        )}
+                        {transaction.installment_count && transaction.current_installment && (
+                          <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5">
+                            <CreditCard className="w-3 h-3" />
+                            {transaction.current_installment}/{transaction.installment_count}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">{transaction.category?.name || 'Sem categoria'}</p>
                     </div>
                     
