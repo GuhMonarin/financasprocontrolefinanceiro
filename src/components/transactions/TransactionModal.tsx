@@ -12,6 +12,7 @@ import { Transaction, useCreateTransaction, useUpdateTransaction } from '@/hooks
 import { toast } from 'sonner';
 import * as Icons from 'lucide-react';
 import { Loader2, Repeat, CreditCard } from 'lucide-react';
+import { transactionFormSchema } from '@/lib/schemas';
 
 interface TransactionModalProps {
   open: boolean;
@@ -60,32 +61,37 @@ export function TransactionModal({ open, onClose, transaction, categories }: Tra
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || !categoryId || !description) {
-      toast.error('Preencha todos os campos');
-      return;
-    }
-
-    if (isRecurring && recurrenceType === 'installment') {
-      const count = parseInt(installmentCount);
-      if (isNaN(count) || count < 2 || count > 99) {
-        toast.error('Número de parcelas deve ser entre 2 e 99');
-        return;
-      }
-    }
+    const parsedAmount = parseFloat(amount);
+    const parsedInstallments = isRecurring && recurrenceType === 'installment' 
+      ? parseInt(installmentCount) 
+      : null;
 
     const data = {
-      amount: parseFloat(amount),
+      amount: parsedAmount,
       category_id: categoryId,
-      description,
+      description: description.trim(),
       date,
       type,
       is_recurring: isRecurring,
       recurrence_type: isRecurring ? recurrenceType : null,
-      installment_count: isRecurring && recurrenceType === 'installment' ? parseInt(installmentCount) : null,
+      installment_count: parsedInstallments,
     };
 
+    const result = transactionFormSchema.safeParse(data);
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
+      return;
+    }
+
     if (transaction) {
-      await updateTransaction.mutateAsync({ id: transaction.id, amount: data.amount, category_id: data.category_id, description: data.description, date: data.date, type: data.type });
+      await updateTransaction.mutateAsync({ 
+        id: transaction.id, 
+        amount: data.amount, 
+        category_id: data.category_id, 
+        description: data.description, 
+        date: data.date, 
+        type: data.type 
+      });
     } else {
       await createTransaction.mutateAsync(data);
     }

@@ -23,6 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { categorySchema } from '@/lib/schemas';
 
 const availableIcons = [
   'utensils', 'home', 'car', 'gamepad-2', 'heart-pulse', 'graduation-cap',
@@ -77,14 +79,18 @@ export function CategoryList() {
   };
 
   const handleSave = async () => {
-    if (!name.trim()) {
+    const data = { name: name.trim(), icon, color, type };
+    
+    const result = categorySchema.safeParse(data);
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
       return;
     }
 
     if (selectedCategory) {
-      await updateCategory.mutateAsync({ id: selectedCategory.id, name, icon, color, type });
+      await updateCategory.mutateAsync({ id: selectedCategory.id, ...data });
     } else {
-      await createCategory.mutateAsync({ name, icon, color, type });
+      await createCategory.mutateAsync(data);
     }
     setModalOpen(false);
   };
