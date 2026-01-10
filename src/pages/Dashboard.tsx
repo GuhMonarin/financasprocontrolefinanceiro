@@ -58,9 +58,12 @@ const Dashboard = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="animate-fade-in">
-            <h1 className="text-2xl lg:text-3xl font-bold">
-              Olá, {firstName}! 👋 <PlanBadge />
-            </h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl lg:text-3xl font-bold">
+                Olá, {firstName}! 👋
+              </h1>
+              <PlanBadge />
+            </div>
             <p className="text-muted-foreground">
               Aqui está o resumo das suas finanças de {monthName}
             </p>
