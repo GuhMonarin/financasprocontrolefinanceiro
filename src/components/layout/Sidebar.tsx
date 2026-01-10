@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { PlanBadge } from '@/components/PlanBadge';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -116,7 +117,10 @@ export function Sidebar() {
               <span className="text-sm font-semibold text-primary">{initials}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{profile?.full_name || 'Usuário'}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium truncate">{profile?.full_name || 'Usuário'}</p>
+                <PlanBadge />
+              </div>
               <p className="text-xs text-muted-foreground truncate">{profile?.email || ''}</p>
             </div>
             <Button variant="ghost" size="icon" className="shrink-0" onClick={handleLogout}>
