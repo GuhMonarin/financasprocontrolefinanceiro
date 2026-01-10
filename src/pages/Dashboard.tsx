@@ -1,20 +1,21 @@
-import { Wallet, TrendingUp, TrendingDown, Plus, Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
-import { StatCard } from '@/components/dashboard/StatCard';
-import { ExpenseChart } from '@/components/dashboard/ExpenseChart';
-import { MonthlyChart } from '@/components/dashboard/MonthlyChart';
-import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
-import { TransactionModal } from '@/components/transactions/TransactionModal';
-import { useTransactions } from '@/hooks/useTransactions';
-import { useCategories } from '@/hooks/useCategories';
-import { useProfile } from '@/hooks/useProfile';
-import { Button } from '@/components/ui/button';
+import { Wallet, TrendingUp, TrendingDown, Plus, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { ExpenseChart } from "@/components/dashboard/ExpenseChart";
+import { MonthlyChart } from "@/components/dashboard/MonthlyChart";
+import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { TransactionModal } from "@/components/transactions/TransactionModal";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useCategories } from "@/hooks/useCategories";
+import { useProfile } from "@/hooks/useProfile";
+import { Button } from "@/components/ui/button";
+import { PlanBadge } from "@/components/PlanBadge";
 
 const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
   }).format(value);
 };
 
@@ -22,23 +23,24 @@ const Dashboard = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
-  
-  const { data: transactions = [], isLoading: transactionsLoading } = useTransactions(currentMonth, currentYear);
+
+  const { data: transactions = [], isLoading: transactionsLoading } =
+    useTransactions(currentMonth, currentYear);
   const { data: categories = [] } = useCategories();
   const { data: profile } = useProfile();
 
   const totalIncome = transactions
-    .filter(t => t.type === 'income')
+    .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const totalExpense = transactions
-    .filter(t => t.type === 'expense')
+    .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const balance = totalIncome - totalExpense;
 
-  const monthName = new Date().toLocaleDateString('pt-BR', { month: 'long' });
-  const firstName = profile?.full_name?.split(' ')[0] || 'Usuário';
+  const monthName = new Date().toLocaleDateString("pt-BR", { month: "long" });
+  const firstName = profile?.full_name?.split(" ")[0] || "Usuário";
 
   if (transactionsLoading) {
     return (
@@ -57,13 +59,16 @@ const Dashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="animate-fade-in">
             <h1 className="text-2xl lg:text-3xl font-bold">
-              Olá, {firstName}! 👋
+              Olá, {firstName}! 👋 <PlanBadge />
             </h1>
             <p className="text-muted-foreground">
               Aqui está o resumo das suas finanças de {monthName}
             </p>
           </div>
-          <Button onClick={() => setModalOpen(true)} className="gap-2 shadow-md w-full sm:w-auto">
+          <Button
+            onClick={() => setModalOpen(true)}
+            className="gap-2 shadow-md w-full sm:w-auto"
+          >
             <Plus className="w-4 h-4" />
             Nova Transação
           </Button>
