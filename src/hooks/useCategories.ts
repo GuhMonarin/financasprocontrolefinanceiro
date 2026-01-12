@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { checkRateLimit, RATE_LIMITS, RateLimitError } from '@/lib/rateLimiter';
 
 export interface Category {
   id: string;
@@ -21,6 +22,17 @@ export function useCategories() {
     queryKey: ['categories', user?.id],
     queryFn: async () => {
       if (!user) return [];
+
+      // Check rate limit for DB reads
+      try {
+        checkRateLimit('db-read', RATE_LIMITS.DB_READ);
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          toast.error(error.message);
+          throw error;
+        }
+        throw error;
+      }
       
       const { data, error } = await supabase
         .from('categories')
@@ -42,6 +54,9 @@ export function useCreateCategory() {
   return useMutation({
     mutationFn: async (category: Omit<Category, 'id' | 'user_id' | 'created_at' | 'is_default'>) => {
       if (!user) throw new Error('User not authenticated');
+
+      // Check rate limit for DB writes
+      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
       
       const { data, error } = await supabase
         .from('categories')
@@ -59,8 +74,12 @@ export function useCreateCategory() {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast.success('Categoria criada!');
     },
-    onError: () => {
-      toast.error('Erro ao criar categoria');
+    onError: (error) => {
+      if (error instanceof RateLimitError) {
+        toast.error(error.message);
+      } else {
+        toast.error('Erro ao criar categoria');
+      }
     },
   });
 }
@@ -70,6 +89,9 @@ export function useUpdateCategory() {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Category> & { id: string }) => {
+      // Check rate limit for DB writes
+      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
+
       const { data, error } = await supabase
         .from('categories')
         .update(updates)
@@ -84,8 +106,12 @@ export function useUpdateCategory() {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast.success('Categoria atualizada!');
     },
-    onError: () => {
-      toast.error('Erro ao atualizar categoria');
+    onError: (error) => {
+      if (error instanceof RateLimitError) {
+        toast.error(error.message);
+      } else {
+        toast.error('Erro ao atualizar categoria');
+      }
     },
   });
 }
@@ -95,6 +121,9 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Check rate limit for DB writes
+      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
+
       const { error } = await supabase
         .from('categories')
         .delete()
@@ -106,8 +135,12 @@ export function useDeleteCategory() {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast.success('Categoria excluída!');
     },
-    onError: () => {
-      toast.error('Erro ao excluir categoria');
+    onError: (error) => {
+      if (error instanceof RateLimitError) {
+        toast.error(error.message);
+      } else {
+        toast.error('Erro ao excluir categoria');
+      }
     },
   });
 }

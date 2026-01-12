@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { checkRateLimit, RATE_LIMITS, RateLimitError } from '@/lib/rateLimiter';
 
 interface AuthContextType {
   user: User | null;
@@ -39,6 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    try {
+      // Check rate limit for auth operations (10 requests per minute)
+      checkRateLimit('auth', RATE_LIMITS.AUTH);
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        return { error: new Error(error.message) };
+      }
+      throw error;
+    }
+
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -56,6 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
+    try {
+      // Check rate limit for auth operations (10 requests per minute)
+      checkRateLimit('auth', RATE_LIMITS.AUTH);
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        return { error: new Error(error.message) };
+      }
+      throw error;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
