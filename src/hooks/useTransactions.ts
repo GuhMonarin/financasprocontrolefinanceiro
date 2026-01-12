@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Category } from './useCategories';
+import { checkRateLimit, RATE_LIMITS, RateLimitError } from '@/lib/rateLimiter';
 
 export interface Transaction {
   id: string;
@@ -29,6 +30,17 @@ export function useTransactions(month?: number, year?: number) {
     queryKey: ['transactions', user?.id, month, year],
     queryFn: async () => {
       if (!user) return [];
+
+      // Check rate limit for DB reads
+      try {
+        checkRateLimit('db-read', RATE_LIMITS.DB_READ);
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          toast.error(error.message);
+          throw error;
+        }
+        throw error;
+      }
       
       let query = supabase
         .from('transactions')
@@ -70,6 +82,9 @@ export function useCreateTransaction() {
       installment_count?: number | null;
     }) => {
       if (!user) throw new Error('User not authenticated');
+
+      // Check rate limit for DB writes
+      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
       
       const { is_recurring, recurrence_type, installment_count, ...baseTransaction } = transaction;
       
@@ -158,8 +173,12 @@ export function useCreateTransaction() {
         toast.success('Transação adicionada!');
       }
     },
-    onError: () => {
-      toast.error('Erro ao adicionar transação');
+    onError: (error) => {
+      if (error instanceof RateLimitError) {
+        toast.error(error.message);
+      } else {
+        toast.error('Erro ao adicionar transação');
+      }
     },
   });
 }
@@ -169,6 +188,9 @@ export function useUpdateTransaction() {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Transaction> & { id: string }) => {
+      // Check rate limit for DB writes
+      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
+
       const { data, error } = await supabase
         .from('transactions')
         .update(updates)
@@ -183,8 +205,12 @@ export function useUpdateTransaction() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast.success('Transação atualizada!');
     },
-    onError: () => {
-      toast.error('Erro ao atualizar transação');
+    onError: (error) => {
+      if (error instanceof RateLimitError) {
+        toast.error(error.message);
+      } else {
+        toast.error('Erro ao atualizar transação');
+      }
     },
   });
 }
@@ -194,6 +220,9 @@ export function useDeleteTransaction() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Check rate limit for DB writes
+      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
+
       const { error } = await supabase
         .from('transactions')
         .delete()
@@ -205,8 +234,12 @@ export function useDeleteTransaction() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast.success('Transação excluída!');
     },
-    onError: () => {
-      toast.error('Erro ao excluir transação');
+    onError: (error) => {
+      if (error instanceof RateLimitError) {
+        toast.error(error.message);
+      } else {
+        toast.error('Erro ao excluir transação');
+      }
     },
   });
 }
