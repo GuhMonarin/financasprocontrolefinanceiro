@@ -41,8 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
-      // Check rate limit for auth operations (10 requests per minute)
-      checkRateLimit('auth', RATE_LIMITS.AUTH);
+      // Check rate limit for auth operations (10 requests per minute) - use email as identifier before auth
+      checkRateLimit(email, 'auth', RATE_LIMITS.AUTH);
     } catch (error) {
       if (error instanceof RateLimitError) {
         return { error: new Error(error.message) };
@@ -68,8 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Check rate limit for auth operations (10 requests per minute)
-      checkRateLimit('auth', RATE_LIMITS.AUTH);
+      // Check rate limit for auth operations (10 requests per minute) - use email as identifier before auth
+      checkRateLimit(email, 'auth', RATE_LIMITS.AUTH);
     } catch (error) {
       if (error instanceof RateLimitError) {
         return { error: new Error(error.message) };

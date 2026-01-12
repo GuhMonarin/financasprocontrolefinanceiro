@@ -23,9 +23,9 @@ export function useCategories() {
     queryFn: async () => {
       if (!user) return [];
 
-      // Check rate limit for DB reads
+      // Check rate limit for DB reads - use user ID
       try {
-        checkRateLimit('db-read', RATE_LIMITS.DB_READ);
+        checkRateLimit(user.id, 'db-read', RATE_LIMITS.DB_READ);
       } catch (error) {
         if (error instanceof RateLimitError) {
           toast.error(error.message);
@@ -55,8 +55,8 @@ export function useCreateCategory() {
     mutationFn: async (category: Omit<Category, 'id' | 'user_id' | 'created_at' | 'is_default'>) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Check rate limit for DB writes
-      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
+      // Check rate limit for DB writes - use user ID
+      checkRateLimit(user.id, 'db-write', RATE_LIMITS.DB_WRITE);
       
       const { data, error } = await supabase
         .from('categories')
@@ -86,11 +86,13 @@ export function useCreateCategory() {
 
 export function useUpdateCategory() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Category> & { id: string }) => {
-      // Check rate limit for DB writes
-      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
+      if (!user) throw new Error('User not authenticated');
+      // Check rate limit for DB writes - use user ID
+      checkRateLimit(user.id, 'db-write', RATE_LIMITS.DB_WRITE);
 
       const { data, error } = await supabase
         .from('categories')
@@ -118,11 +120,13 @@ export function useUpdateCategory() {
 
 export function useDeleteCategory() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Check rate limit for DB writes
-      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
+      if (!user) throw new Error('User not authenticated');
+      // Check rate limit for DB writes - use user ID
+      checkRateLimit(user.id, 'db-write', RATE_LIMITS.DB_WRITE);
 
       const { error } = await supabase
         .from('categories')

@@ -31,9 +31,9 @@ export function useTransactions(month?: number, year?: number) {
     queryFn: async () => {
       if (!user) return [];
 
-      // Check rate limit for DB reads
+      // Check rate limit for DB reads - use user ID
       try {
-        checkRateLimit('db-read', RATE_LIMITS.DB_READ);
+        checkRateLimit(user.id, 'db-read', RATE_LIMITS.DB_READ);
       } catch (error) {
         if (error instanceof RateLimitError) {
           toast.error(error.message);
@@ -83,8 +83,8 @@ export function useCreateTransaction() {
     }) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Check rate limit for DB writes
-      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
+      // Check rate limit for DB writes - use user ID
+      checkRateLimit(user.id, 'db-write', RATE_LIMITS.DB_WRITE);
       
       const { is_recurring, recurrence_type, installment_count, ...baseTransaction } = transaction;
       
@@ -185,11 +185,13 @@ export function useCreateTransaction() {
 
 export function useUpdateTransaction() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Transaction> & { id: string }) => {
-      // Check rate limit for DB writes
-      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
+      if (!user) throw new Error('User not authenticated');
+      // Check rate limit for DB writes - use user ID
+      checkRateLimit(user.id, 'db-write', RATE_LIMITS.DB_WRITE);
 
       const { data, error } = await supabase
         .from('transactions')
@@ -217,11 +219,13 @@ export function useUpdateTransaction() {
 
 export function useDeleteTransaction() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Check rate limit for DB writes
-      checkRateLimit('db-write', RATE_LIMITS.DB_WRITE);
+      if (!user) throw new Error('User not authenticated');
+      // Check rate limit for DB writes - use user ID
+      checkRateLimit(user.id, 'db-write', RATE_LIMITS.DB_WRITE);
 
       const { error } = await supabase
         .from('transactions')
