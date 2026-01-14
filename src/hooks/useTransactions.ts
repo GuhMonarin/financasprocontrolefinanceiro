@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Category } from './useCategories';
 import { checkRateLimit, RATE_LIMITS, RateLimitError } from '@/lib/rateLimiter';
+import { handleDatabaseError, logError } from '@/lib/errorHandler';
 
 export interface Transaction {
   id: string;
@@ -177,7 +178,9 @@ export function useCreateTransaction() {
       if (error instanceof RateLimitError) {
         toast.error(error.message);
       } else {
-        toast.error('Erro ao adicionar transação');
+        const message = handleDatabaseError(error, 'save');
+        logError(error, 'useCreateTransaction');
+        toast.error(message);
       }
     },
   });
@@ -211,7 +214,9 @@ export function useUpdateTransaction() {
       if (error instanceof RateLimitError) {
         toast.error(error.message);
       } else {
-        toast.error('Erro ao atualizar transação');
+        const message = handleDatabaseError(error, 'update');
+        logError(error, 'useUpdateTransaction');
+        toast.error(message);
       }
     },
   });
@@ -242,7 +247,9 @@ export function useDeleteTransaction() {
       if (error instanceof RateLimitError) {
         toast.error(error.message);
       } else {
-        toast.error('Erro ao excluir transação');
+        const message = handleDatabaseError(error, 'delete');
+        logError(error, 'useDeleteTransaction');
+        toast.error(message);
       }
     },
   });
