@@ -13,6 +13,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
+import { profileSchema } from '@/lib/schemas';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -33,11 +34,17 @@ const Settings = () => {
 
   const handleSave = async () => {
     if (!profile) return;
+
+    const result = profileSchema.safeParse({ fullName: fullName.trim() });
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
+      return;
+    }
     
     setSaving(true);
     const { error } = await supabase
       .from('profiles')
-      .update({ full_name: fullName })
+      .update({ full_name: fullName.trim() })
       .eq('id', profile.id);
     
     setSaving(false);

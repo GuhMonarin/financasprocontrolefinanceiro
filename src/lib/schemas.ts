@@ -103,6 +103,25 @@ export const categorySchema = z.object({
   }),
 });
 
+// ==================== Budget Schemas ====================
+
+export const budgetSchema = z.object({
+  category_id: z.string()
+    .uuid('Categoria inválida')
+    .min(1, 'Selecione uma categoria'),
+  amount: z.number()
+    .positive('Valor deve ser maior que zero')
+    .max(999999999.99, 'Valor muito alto'),
+  month: z.number()
+    .int()
+    .min(1, 'Mês inválido')
+    .max(12, 'Mês inválido'),
+  year: z.number()
+    .int()
+    .min(2020, 'Ano inválido')
+    .max(2100, 'Ano inválido'),
+});
+
 // ==================== Type Exports ====================
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -110,3 +129,4 @@ export type SignupInput = z.infer<typeof signupSchema>;
 export type ProfileInput = z.infer<typeof profileSchema>;
 export type TransactionInput = z.infer<typeof transactionSchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
+export type BudgetInput = z.infer<typeof budgetSchema>;
