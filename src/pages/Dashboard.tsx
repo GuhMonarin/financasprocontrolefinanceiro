@@ -12,6 +12,10 @@ import { useCategories } from "@/hooks/useCategories";
 import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
 import { PlanBadge } from "@/components/PlanBadge";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { WelcomeModal } from "@/components/onboarding/WelcomeModal";
+import { InAppHelp } from "@/components/onboarding/InAppHelp";
+import { useOnboarding } from "@/hooks/useOnboarding";
 
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat("pt-BR", {
@@ -29,6 +33,15 @@ const Dashboard = () => {
     useTransactions(currentMonth, currentYear);
   const { data: categories = [] } = useCategories();
   const { data: profile } = useProfile();
+  
+  const {
+    showWelcome,
+    showTour,
+    startTour,
+    endTour,
+    closeWelcome,
+    createDefaultCategories,
+  } = useOnboarding();
 
   const totalIncome = transactions
     .filter((t) => t.type === "income")
@@ -55,7 +68,7 @@ const Dashboard = () => {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-6" data-tour="dashboard">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="animate-fade-in">
@@ -72,6 +85,7 @@ const Dashboard = () => {
           <Button
             onClick={() => setModalOpen(true)}
             className="gap-2 shadow-md w-full sm:w-auto"
+            data-tour="new-transaction"
           >
             <Plus className="w-4 h-4" />
             Nova Transação
@@ -79,7 +93,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-slide-up">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-slide-up" data-tour="stats">
           <StatCard
             title="Saldo Atual"
             value={formatCurrency(balance)}
@@ -104,7 +118,7 @@ const Dashboard = () => {
         <BudgetAlerts />
 
         {/* Charts Row */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2" data-tour="charts">
           <ExpenseChart transactions={transactions} />
           <MonthlyChart />
         </div>
@@ -118,6 +132,16 @@ const Dashboard = () => {
         onClose={() => setModalOpen(false)}
         categories={categories}
       />
+
+      {/* Onboarding */}
+      <WelcomeModal
+        open={showWelcome}
+        onClose={closeWelcome}
+        onStartTour={startTour}
+        onCreateCategories={createDefaultCategories}
+      />
+      <OnboardingTour isOpen={showTour} onComplete={endTour} />
+      <InAppHelp onStartTour={startTour} />
     </MainLayout>
   );
 };
