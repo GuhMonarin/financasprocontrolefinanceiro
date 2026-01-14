@@ -92,7 +92,7 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex flex-col gap-1 p-4">
+        <nav className="flex flex-col gap-1 p-4" data-tour="nav">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
