@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Pencil, Trash2, Plus, Loader2, Repeat, CreditCard } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { TransactionModal } from './TransactionModal';
 import { TransactionFilters, TransactionFiltersState } from './TransactionFilters';
-import { useTransactions, useDeleteTransaction, Transaction } from '@/hooks/useTransactions';
+import { useDeleteTransaction, Transaction } from '@/hooks/useTransactions';
+import { useTransactionsPaginated } from '@/hooks/useTransactionsPaginated';
 import { useCategories } from '@/hooks/useCategories';
 import * as Icons from 'lucide-react';
 import {
@@ -27,9 +28,9 @@ const formatCurrency = (value: number): string => {
 };
 
 export function TransactionList() {
-  const { data: transactions = [], isLoading } = useTransactions();
   const { data: categories = [] } = useCategories();
   const deleteTransaction = useDeleteTransaction();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>();
@@ -44,6 +45,52 @@ export function TransactionList() {
       year: String(now.getFullYear()),
     };
   });
+
+  // Convert filters for the paginated hook
+  const paginatedFilters = useMemo(() => ({
+    month: filters.month !== 'all' ? parseInt(filters.month) : undefined,
+    year: filters.year !== 'all' ? parseInt(filters.year) : undefined,
+    type: filters.type as 'income' | 'expense' | 'all',
+    categoryId: filters.categoryId,
+    search: filters.search,
+  }), [filters]);
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useTransactionsPaginated(paginatedFilters);
+
+  // Flatten all pages into a single array
+  const transactions = useMemo(() => 
+    data?.pages.flatMap(page => page.data) ?? [], 
+    [data]
+  );
+
+  const totalCount = data?.pages[0]?.totalCount ?? 0;
+
+  // Infinite scroll observer
+  const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
+    const [target] = entries;
+    if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  useEffect(() => {
+    const element = loadMoreRef.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(handleObserver, {
+      threshold: 0.1,
+      rootMargin: '100px',
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [handleObserver]);
 
   const getIcon = (iconName: string) => {
     const formattedName = iconName.split('-').map(part => 
@@ -63,37 +110,7 @@ export function TransactionList() {
     setModalOpen(true);
   };
 
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((transaction) => {
-      // Search filter
-      if (filters.search && !transaction.description.toLowerCase().includes(filters.search.toLowerCase())) {
-        return false;
-      }
-      
-      // Type filter
-      if (filters.type !== 'all' && transaction.type !== filters.type) {
-        return false;
-      }
-      
-      // Category filter
-      if (filters.categoryId !== 'all' && transaction.category_id !== filters.categoryId) {
-        return false;
-      }
-      
-      // Month/Year filter
-      const transactionDate = new Date(transaction.date + 'T00:00:00');
-      if (filters.month !== 'all' && transactionDate.getMonth() !== parseInt(filters.month)) {
-        return false;
-      }
-      if (filters.year !== 'all' && transactionDate.getFullYear() !== parseInt(filters.year)) {
-        return false;
-      }
-      
-      return true;
-    });
-  }, [transactions, filters]);
-
-  const groupedTransactions = filteredTransactions.reduce((groups, transaction) => {
+  const groupedTransactions = transactions.reduce((groups, transaction) => {
     const date = transaction.date;
     if (!groups[date]) {
       groups[date] = [];
@@ -119,7 +136,14 @@ export function TransactionList() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Transações</h2>
-          <p className="text-muted-foreground">Gerencie suas receitas e despesas</p>
+          <p className="text-muted-foreground">
+            Gerencie suas receitas e despesas
+            {totalCount > 0 && (
+              <span className="ml-2 text-sm">
+                ({transactions.length} de {totalCount})
+              </span>
+            )}
+          </p>
         </div>
         <Button onClick={() => { setSelectedTransaction(undefined); setModalOpen(true); }} className="gap-2">
           <Plus className="w-4 h-4" />
@@ -133,18 +157,12 @@ export function TransactionList() {
         categories={categories} 
       />
 
-      {filteredTransactions.length === 0 ? (
+      {transactions.length === 0 ? (
         <div className="bg-card rounded-2xl p-12 card-shadow text-center">
-          <p className="text-muted-foreground">
-            {transactions.length === 0 
-              ? 'Nenhuma transação encontrada' 
-              : 'Nenhuma transação corresponde aos filtros'}
-          </p>
-          {transactions.length === 0 && (
-            <Button onClick={() => setModalOpen(true)} variant="outline" className="mt-4">
-              Adicionar primeira transação
-            </Button>
-          )}
+          <p className="text-muted-foreground">Nenhuma transação encontrada</p>
+          <Button onClick={() => setModalOpen(true)} variant="outline" className="mt-4">
+            Adicionar primeira transação
+          </Button>
         </div>
       ) : (
         <div className="bg-card rounded-2xl card-shadow overflow-hidden">
@@ -228,6 +246,18 @@ export function TransactionList() {
               </div>
             </div>
           ))}
+          
+          {/* Infinite scroll trigger */}
+          <div ref={loadMoreRef} className="py-4 flex justify-center">
+            {isFetchingNextPage && (
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            )}
+            {!hasNextPage && transactions.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Todas as transações carregadas
+              </p>
+            )}
+          </div>
         </div>
       )}
 
