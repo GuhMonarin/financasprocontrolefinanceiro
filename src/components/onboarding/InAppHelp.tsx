@@ -5,7 +5,6 @@ import {
   MessageCircle,
   Lightbulb,
   ChevronRight,
-  X,
   Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -69,10 +68,19 @@ const tips = [
 ];
 
 export const InAppHelp = ({ onStartTour }: InAppHelpProps) => {
+  const [open, setOpen] = useState(false);
   const [randomTip] = useState(() => tips[Math.floor(Math.random() * tips.length)]);
 
+  const handleStartTour = () => {
+    setOpen(false);
+    // Small delay to allow sheet to close before tour starts
+    setTimeout(() => {
+      onStartTour?.();
+    }, 300);
+  };
+
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           variant="outline"
@@ -107,7 +115,7 @@ export const InAppHelp = ({ onStartTour }: InAppHelpProps) => {
             <Button
               variant="outline"
               className="w-full justify-between"
-              onClick={onStartTour}
+              onClick={handleStartTour}
             >
               <span className="flex items-center gap-2">
                 <Play className="w-4 h-4" />
