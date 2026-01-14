@@ -89,8 +89,9 @@ export const OnboardingTour = ({ onComplete, isOpen }: OnboardingTourProps) => {
 
         setPosition({ top, left });
 
-        // Highlight element
-        element.classList.add("ring-2", "ring-primary", "ring-offset-2", "z-50", "relative");
+        // Highlight element with higher z-index
+        element.classList.add("ring-2", "ring-primary", "ring-offset-2", "relative");
+        (element as HTMLElement).style.zIndex = "9999";
       }
     };
 
@@ -101,8 +102,11 @@ export const OnboardingTour = ({ onComplete, isOpen }: OnboardingTourProps) => {
       window.removeEventListener("resize", updatePosition);
       // Remove highlights
       tourSteps.forEach((step) => {
-        const el = document.querySelector(step.target);
-        el?.classList.remove("ring-2", "ring-primary", "ring-offset-2", "z-50", "relative");
+        const el = document.querySelector(step.target) as HTMLElement;
+        if (el) {
+          el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "relative");
+          el.style.zIndex = "";
+        }
       });
     };
   }, [currentStep, isOpen]);
@@ -130,12 +134,12 @@ export const OnboardingTour = ({ onComplete, isOpen }: OnboardingTourProps) => {
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/50 z-40" onClick={onComplete} />
+      <div className="fixed inset-0 bg-black/60 z-[9998]" onClick={onComplete} />
 
       {/* Tooltip */}
       <Card
         className={cn(
-          "fixed z-50 w-80 p-4 shadow-xl animate-fade-in",
+          "fixed z-[10000] w-80 p-4 shadow-xl animate-fade-in border-primary/20",
           step.position === "bottom" && "-translate-x-1/2",
           step.position === "top" && "-translate-x-1/2 -translate-y-full",
           step.position === "right" && "-translate-y-1/2",

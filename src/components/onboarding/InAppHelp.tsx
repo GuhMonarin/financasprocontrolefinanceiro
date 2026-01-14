@@ -137,28 +137,6 @@ export const InAppHelp = ({ onStartTour }: InAppHelpProps) => {
             </Accordion>
           </div>
 
-          {/* Keyboard Shortcuts */}
-          <div>
-            <h3 className="font-semibold mb-3">Atalhos de Teclado</h3>
-            <div className="space-y-2">
-              {[
-                { key: "N", action: "Nova transação" },
-                { key: "D", action: "Ir para Dashboard" },
-                { key: "T", action: "Ir para Transações" },
-                { key: "?", action: "Abrir ajuda" },
-              ].map((shortcut) => (
-                <div
-                  key={shortcut.key}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <span className="text-muted-foreground">{shortcut.action}</span>
-                  <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">
-                    {shortcut.key}
-                  </kbd>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </SheetContent>
     </Sheet>
