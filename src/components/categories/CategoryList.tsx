@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -221,6 +221,11 @@ export function CategoryList() {
             <DialogTitle>
               {selectedCategory ? 'Editar Categoria' : 'Nova Categoria'}
             </DialogTitle>
+            <DialogDescription>
+              {selectedCategory
+                ? 'Edite os detalhes da categoria abaixo.'
+                : 'Preencha os campos para criar uma nova categoria.'}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5">
