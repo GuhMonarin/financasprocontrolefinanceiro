@@ -54,7 +54,14 @@ export const OnboardingTour = ({ onComplete, isOpen }: OnboardingTourProps) => {
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      // Reset step when tour closes
+      setCurrentStep(0);
+      return;
+    }
+
+    // Lock body scroll
+    document.body.style.overflow = "hidden";
 
     const updatePosition = () => {
       const step = tourSteps[currentStep];
@@ -89,18 +96,33 @@ export const OnboardingTour = ({ onComplete, isOpen }: OnboardingTourProps) => {
 
         setPosition({ top, left });
 
-        // Highlight element with higher z-index
+        // Clear all previous highlights first
+        tourSteps.forEach((s) => {
+          const el = document.querySelector(s.target) as HTMLElement;
+          if (el) {
+            el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "relative");
+            el.style.zIndex = "";
+          }
+        });
+
+        // Highlight current element
         element.classList.add("ring-2", "ring-primary", "ring-offset-2", "relative");
         (element as HTMLElement).style.zIndex = "9999";
+
+        // Scroll element into view if needed
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     };
 
-    updatePosition();
+    // Delay to ensure DOM is ready
+    const timer = setTimeout(updatePosition, 100);
     window.addEventListener("resize", updatePosition);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("resize", updatePosition);
-      // Remove highlights
+      document.body.style.overflow = "";
+      // Remove all highlights
       tourSteps.forEach((step) => {
         const el = document.querySelector(step.target) as HTMLElement;
         if (el) {
