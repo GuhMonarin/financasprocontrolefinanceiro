@@ -5,6 +5,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { ExpenseChart } from "@/components/dashboard/ExpenseChart";
 import { MonthlyChart } from "@/components/dashboard/MonthlyChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { BudgetAlerts } from "@/components/dashboard/BudgetAlerts";
 import { TransactionModal } from "@/components/transactions/TransactionModal";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useCategories } from "@/hooks/useCategories";
@@ -98,6 +99,9 @@ const Dashboard = () => {
             variant="expense"
           />
         </div>
+
+        {/* Budget Alerts */}
+        <BudgetAlerts />
 
         {/* Charts Row */}
         <div className="grid gap-6 lg:grid-cols-2">

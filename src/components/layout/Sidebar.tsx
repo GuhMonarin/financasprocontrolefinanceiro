@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Wallet,
-  Crown
+  Crown,
+  PiggyBank
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: ArrowLeftRight, label: 'Transações', path: '/transactions' },
   { icon: Tags, label: 'Categorias', path: '/categories' },
+  { icon: PiggyBank, label: 'Orçamentos', path: '/budgets' },
   { icon: BarChart3, label: 'Relatórios', path: '/reports' },
   { icon: Crown, label: 'Assinatura', path: '/subscription' },
   { icon: Settings, label: 'Configurações', path: '/settings' },
