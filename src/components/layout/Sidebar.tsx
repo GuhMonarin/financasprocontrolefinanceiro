@@ -9,7 +9,8 @@ import {
   LogOut,
   Menu,
   X,
-  Wallet
+  Wallet,
+  Crown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const navItems = [
   { icon: ArrowLeftRight, label: 'Transações', path: '/transactions' },
   { icon: Tags, label: 'Categorias', path: '/categories' },
   { icon: BarChart3, label: 'Relatórios', path: '/reports' },
+  { icon: Crown, label: 'Assinatura', path: '/subscription' },
   { icon: Settings, label: 'Configurações', path: '/settings' },
 ];
 
