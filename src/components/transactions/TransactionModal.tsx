@@ -59,6 +59,7 @@ export function TransactionModal({
     "fixed"
   );
   const [installmentCount, setInstallmentCount] = useState("2");
+  const [fixedFrequency, setFixedFrequency] = useState<"daily" | "weekly" | "monthly" | "yearly">("monthly");
 
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
@@ -75,6 +76,7 @@ export function TransactionModal({
       setIsRecurring(false);
       setRecurrenceType("fixed");
       setInstallmentCount("2");
+      setFixedFrequency("monthly");
     } else {
       setType("expense");
       setAmount("");
@@ -84,6 +86,7 @@ export function TransactionModal({
       setIsRecurring(false);
       setRecurrenceType("fixed");
       setInstallmentCount("2");
+      setFixedFrequency("monthly");
     }
   }, [transaction, open]);
 
@@ -105,6 +108,7 @@ export function TransactionModal({
       is_recurring: isRecurring,
       recurrence_type: isRecurring ? recurrenceType : null,
       installment_count: parsedInstallments,
+      fixed_frequency: isRecurring && recurrenceType === "fixed" ? fixedFrequency : null,
     };
 
     const result = transactionFormSchema.safeParse(data);
@@ -279,11 +283,26 @@ export function TransactionModal({
                         className="cursor-pointer flex items-center gap-2 font-medium"
                       >
                         <Repeat className="w-4 h-4 text-primary" />
-                        Fixa Mensal
+                        Fixa Recorrente
                       </Label>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Repete todo mês na mesma data de vencimento
+                        Repete automaticamente na frequência escolhida
                       </p>
+                      {recurrenceType === "fixed" && (
+                        <div className="mt-3">
+                          <Select value={fixedFrequency} onValueChange={(v) => setFixedFrequency(v as "daily" | "weekly" | "monthly" | "yearly")}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Frequência" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">Diário</SelectItem>
+                              <SelectItem value="weekly">Semanal</SelectItem>
+                              <SelectItem value="monthly">Mensal</SelectItem>
+                              <SelectItem value="yearly">Anual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
                   </div>
 
