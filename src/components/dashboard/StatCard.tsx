@@ -1,28 +1,19 @@
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { TrendIndicator } from './TrendIndicator';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
   value: string;
   icon: ReactNode;
   trend?: number;
-  trendInverse?: boolean; // For expenses where higher = bad
   variant?: 'default' | 'income' | 'expense' | 'balance';
   className?: string;
-  subtitle?: string;
 }
 
-export function StatCard({ 
-  title, 
-  value, 
-  icon, 
-  trend, 
-  trendInverse = false,
-  variant = 'default', 
-  className,
-  subtitle
-}: StatCardProps) {
+export function StatCard({ title, value, icon, trend, variant = 'default', className }: StatCardProps) {
+  const isPositive = trend && trend > 0;
+  
   return (
     <div className={cn(
       "relative overflow-hidden rounded-2xl p-6 bg-card card-shadow transition-all duration-300 hover:shadow-lg",
@@ -48,13 +39,17 @@ export function StatCard({
             {value}
           </p>
           {trend !== undefined && (
-            <div className="flex items-center gap-2">
-              <TrendIndicator trend={trend} inverseColors={trendInverse} />
-              <span className="text-xs text-muted-foreground">vs mês anterior</span>
+            <div className={cn(
+              "flex items-center gap-1 text-sm font-medium",
+              isPositive ? "text-income" : "text-expense"
+            )}>
+              {isPositive ? (
+                <TrendingUp className="w-4 h-4" />
+              ) : (
+                <TrendingDown className="w-4 h-4" />
+              )}
+              <span>{Math.abs(trend)}% vs mês anterior</span>
             </div>
-          )}
-          {subtitle && (
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
           )}
         </div>
         <div className={cn(
