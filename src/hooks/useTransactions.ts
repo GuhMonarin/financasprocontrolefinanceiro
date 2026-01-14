@@ -81,13 +81,14 @@ export function useCreateTransaction() {
       is_recurring?: boolean;
       recurrence_type?: 'fixed' | 'installment' | null;
       installment_count?: number | null;
+      fixed_frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly' | null;
     }) => {
       if (!user) throw new Error('User not authenticated');
 
       // Check rate limit for DB writes - use user ID
       checkRateLimit(user.id, 'db-write', RATE_LIMITS.DB_WRITE);
       
-      const { is_recurring, recurrence_type, installment_count, ...baseTransaction } = transaction;
+      const { is_recurring, recurrence_type, installment_count, fixed_frequency, ...baseTransaction } = transaction;
       
       // If it's a recurring transaction with installments, create multiple transactions
       if (is_recurring && recurrence_type === 'installment' && installment_count) {
@@ -121,16 +122,39 @@ export function useCreateTransaction() {
         return data;
       }
       
-      // If it's a fixed recurring transaction, create 12 months of transactions
+      // If it's a fixed recurring transaction, create transactions based on frequency
       if (is_recurring && recurrence_type === 'fixed') {
         const recurringGroupId = crypto.randomUUID();
         const transactions = [];
         const baseDate = new Date(transaction.date);
-        const monthsToCreate = 12; // Create 12 months of fixed transactions
+        const frequency = fixed_frequency || 'monthly';
         
-        for (let i = 0; i < monthsToCreate; i++) {
+        // Define how many occurrences to create based on frequency
+        const occurrencesMap = {
+          daily: 30,    // 30 days
+          weekly: 12,   // 12 weeks
+          monthly: 12,  // 12 months
+          yearly: 3,    // 3 years
+        };
+        const occurrences = occurrencesMap[frequency];
+        
+        for (let i = 0; i < occurrences; i++) {
           const transactionDate = new Date(baseDate);
-          transactionDate.setMonth(baseDate.getMonth() + i);
+          
+          switch (frequency) {
+            case 'daily':
+              transactionDate.setDate(baseDate.getDate() + i);
+              break;
+            case 'weekly':
+              transactionDate.setDate(baseDate.getDate() + (i * 7));
+              break;
+            case 'monthly':
+              transactionDate.setMonth(baseDate.getMonth() + i);
+              break;
+            case 'yearly':
+              transactionDate.setFullYear(baseDate.getFullYear() + i);
+              break;
+          }
           
           transactions.push({
             ...baseTransaction,
@@ -148,7 +172,14 @@ export function useCreateTransaction() {
           .select();
         
         if (error) throw error;
-        toast.success(`Transação fixa criada para os próximos ${monthsToCreate} meses!`);
+        
+        const frequencyLabels = {
+          daily: `${occurrences} dias`,
+          weekly: `${occurrences} semanas`,
+          monthly: `${occurrences} meses`,
+          yearly: `${occurrences} anos`,
+        };
+        toast.success(`Transação fixa criada para os próximos ${frequencyLabels[frequency]}!`);
         return data;
       }
       
