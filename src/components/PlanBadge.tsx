@@ -1,24 +1,33 @@
-import { usePlan } from '@/contexts/PlanContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Crown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function PlanBadge() {
-  const { userPlan, loading } = usePlan();
+  const { plan, loading, isPremium } = useSubscription();
 
   if (loading) {
     return <Skeleton className="h-5 w-16" />;
   }
 
-  if (!userPlan) {
-    return null;
-  }
-
-  const badgeVariant = userPlan.name === 'Premium' ? 'default' : 'secondary';
-  const badgeText = userPlan.name === 'Premium' ? '⭐ Premium' : 'Free';
-
   return (
-    <Badge variant={badgeVariant} className="text-xs">
-      {badgeText}
-    </Badge>
+    <Link to="/subscription">
+      <Badge 
+        variant={isPremium ? 'default' : 'secondary'} 
+        className={`text-xs cursor-pointer hover:opacity-80 transition-opacity ${
+          isPremium ? 'bg-gradient-to-r from-amber-500 to-orange-500' : ''
+        }`}
+      >
+        {isPremium ? (
+          <>
+            <Crown className="w-3 h-3 mr-1" />
+            Premium
+          </>
+        ) : (
+          'Free'
+        )}
+      </Badge>
+    </Link>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Wallet, 
   TrendingUp, 
@@ -10,17 +10,27 @@ import {
   Check,
   ChevronRight,
   Moon,
-  Sun
+  Sun,
+  Crown,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from 'next-themes';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { STRIPE_PRICES, PLAN_PRICES, formatPrice } from '@/lib/stripe';
+import { toast } from 'sonner';
 
 const Landing = () => {
   const [isAnnual, setIsAnnual] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
+  const { createCheckout, isPremium } = useSubscription();
+  const navigate = useNavigate();
 
   const features = [
     {
@@ -68,13 +78,14 @@ const Landing = () => {
         'Suporte por email'
       ],
       highlighted: false,
-      cta: 'Começar Grátis'
+      cta: 'Começar Grátis',
+      priceId: null
     },
     {
       name: 'Premium',
       description: 'Para quem quer o controle total das finanças',
-      monthlyPrice: 19.90,
-      annualPrice: 190.80,
+      monthlyPrice: PLAN_PRICES.monthly,
+      annualPrice: PLAN_PRICES.annual,
       features: [
         'Transações ilimitadas',
         'Categorias ilimitadas',
@@ -85,15 +96,48 @@ const Landing = () => {
         'Acesso a novos recursos'
       ],
       highlighted: true,
-      cta: 'Assinar Premium'
+      cta: 'Assinar Premium',
+      priceId: isAnnual ? STRIPE_PRICES.annual : STRIPE_PRICES.monthly
     }
   ];
 
-  const formatPrice = (price: number) => {
+  const handleSubscribe = async (priceId: string | null) => {
+    if (!priceId) {
+      navigate('/auth');
+      return;
+    }
+
+    if (!user) {
+      toast.info('Faça login para assinar');
+      navigate('/auth');
+      return;
+    }
+
+    if (isPremium) {
+      navigate('/subscription');
+      return;
+    }
+
+    setIsCheckingOut(true);
+    try {
+      const url = await createCheckout(priceId);
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        toast.error('Erro ao iniciar checkout');
+      }
+    } catch (error) {
+      toast.error('Erro ao processar assinatura');
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
+
+  const formatPriceLocal = (priceInCents: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(price);
+    }).format(priceInCents / 100);
   };
 
   return (
@@ -281,12 +325,12 @@ const Landing = () => {
                 <CardContent className="text-center">
                   <div className="mb-6">
                     <span className="text-4xl font-bold">
-                      {formatPrice(isAnnual ? plan.annualPrice / 12 : plan.monthlyPrice)}
+                      {formatPriceLocal(isAnnual ? Math.round(plan.annualPrice / 12) : plan.monthlyPrice)}
                     </span>
                     <span className="text-muted-foreground">/mês</span>
                     {isAnnual && plan.annualPrice > 0 && (
                       <p className="text-sm text-muted-foreground mt-1">
-                        {formatPrice(plan.annualPrice)} cobrado anualmente
+                        {formatPriceLocal(plan.annualPrice)} cobrado anualmente
                       </p>
                     )}
                   </div>
@@ -300,15 +344,27 @@ const Landing = () => {
                     ))}
                   </ul>
 
-                  <Link to="/auth" className="block">
-                    <Button 
-                      className={`w-full ${plan.highlighted ? 'gradient-primary' : ''}`}
-                      variant={plan.highlighted ? 'default' : 'outline'}
-                      size="lg"
-                    >
-                      {plan.cta}
-                    </Button>
-                  </Link>
+                  <Button 
+                    className={`w-full ${plan.highlighted ? 'gradient-primary' : ''}`}
+                    variant={plan.highlighted ? 'default' : 'outline'}
+                    size="lg"
+                    onClick={() => handleSubscribe(plan.priceId)}
+                    disabled={isCheckingOut && plan.highlighted}
+                  >
+                    {isCheckingOut && plan.highlighted ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processando...
+                      </>
+                    ) : plan.highlighted ? (
+                      <>
+                        <Crown className="w-4 h-4 mr-2" />
+                        {isPremium ? 'Gerenciar Assinatura' : plan.cta}
+                      </>
+                    ) : (
+                      plan.cta
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             ))}
