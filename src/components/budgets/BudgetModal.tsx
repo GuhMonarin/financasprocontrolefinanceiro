@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -18,8 +19,9 @@ import {
 } from '@/components/ui/select';
 import { useCategories } from '@/hooks/useCategories';
 import { useCreateBudget, useUpdateBudget, BudgetWithSpent } from '@/hooks/useBudgets';
-import { icons } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
+import { icons, Loader2 } from 'lucide-react';
+import { budgetSchema } from '@/lib/schemas';
+import { toast } from 'sonner';
 
 interface BudgetModalProps {
   open: boolean;
@@ -56,17 +58,24 @@ export function BudgetModal({ open, onClose, budget, month, year, existingCatego
     e.preventDefault();
     
     const amountNum = parseFloat(amount.replace(',', '.'));
-    if (isNaN(amountNum) || amountNum <= 0) return;
+    
+    const data = {
+      category_id: categoryId,
+      amount: amountNum,
+      month: month + 1,
+      year,
+    };
+
+    const result = budgetSchema.safeParse(data);
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
+      return;
+    }
 
     if (budget) {
       await updateBudget.mutateAsync({ id: budget.id, amount: amountNum });
     } else {
-      await createBudget.mutateAsync({
-        category_id: categoryId,
-        amount: amountNum,
-        month: month + 1,
-        year,
-      });
+      await createBudget.mutateAsync(data);
     }
     onClose();
   };
@@ -78,6 +87,11 @@ export function BudgetModal({ open, onClose, budget, month, year, existingCatego
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{budget ? 'Editar Budget' : 'Novo Budget'}</DialogTitle>
+          <DialogDescription>
+            {budget
+              ? 'Altere o valor do orçamento para esta categoria.'
+              : 'Defina um limite de gastos mensal para uma categoria.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
