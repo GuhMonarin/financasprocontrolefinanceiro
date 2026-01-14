@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,7 +51,8 @@ interface OnboardingTourProps {
 
 export const OnboardingTour = ({ onComplete, isOpen }: OnboardingTourProps) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [position, setPosition] = useState({ top: 24, left: 24 });
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -60,71 +61,99 @@ export const OnboardingTour = ({ onComplete, isOpen }: OnboardingTourProps) => {
       return;
     }
 
-    // Lock body scroll
-    document.body.style.overflow = "hidden";
+    const clamp = (value: number, min: number, max: number) =>
+      Math.min(Math.max(value, min), max);
+
+    const getTooltipSize = () => {
+      const el = tooltipRef.current;
+      return {
+        width: el?.offsetWidth ?? 320,
+        height: el?.offsetHeight ?? 220,
+      };
+    };
 
     const updatePosition = () => {
       const step = tourSteps[currentStep];
-      const element = document.querySelector(step.target);
+      const element = document.querySelector(step.target) as HTMLElement | null;
 
-      if (element) {
-        const rect = element.getBoundingClientRect();
-        const scrollTop = window.scrollY;
-        const scrollLeft = window.scrollX;
+      if (!element) return;
 
-        let top = 0;
-        let left = 0;
-
-        switch (step.position) {
-          case "bottom":
-            top = rect.bottom + scrollTop + 12;
-            left = rect.left + scrollLeft + rect.width / 2;
-            break;
-          case "top":
-            top = rect.top + scrollTop - 12;
-            left = rect.left + scrollLeft + rect.width / 2;
-            break;
-          case "right":
-            top = rect.top + scrollTop + rect.height / 2;
-            left = rect.right + scrollLeft + 12;
-            break;
-          case "left":
-            top = rect.top + scrollTop + rect.height / 2;
-            left = rect.left + scrollLeft - 12;
-            break;
+      // Clear all previous highlights first
+      tourSteps.forEach((s) => {
+        const el = document.querySelector(s.target) as HTMLElement | null;
+        if (el) {
+          el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "relative");
+          el.style.zIndex = "";
         }
+      });
 
-        setPosition({ top, left });
+      // Highlight current element
+      element.classList.add("ring-2", "ring-primary", "ring-offset-2", "relative");
+      element.style.zIndex = "9999";
 
-        // Clear all previous highlights first
-        tourSteps.forEach((s) => {
-          const el = document.querySelector(s.target) as HTMLElement;
-          if (el) {
-            el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "relative");
-            el.style.zIndex = "";
-          }
-        });
+      const rect = element.getBoundingClientRect();
+      const { width: tooltipWidth, height: tooltipHeight } = getTooltipSize();
+      const padding = 12;
 
-        // Highlight current element
-        element.classList.add("ring-2", "ring-primary", "ring-offset-2", "relative");
-        (element as HTMLElement).style.zIndex = "9999";
+      const canFit = (pos: TourStep["position"]) => {
+        if (pos === "top") return rect.top >= tooltipHeight + padding * 2;
+        if (pos === "bottom")
+          return window.innerHeight - rect.bottom >= tooltipHeight + padding * 2;
+        if (pos === "left") return rect.left >= tooltipWidth + padding * 2;
+        return window.innerWidth - rect.right >= tooltipWidth + padding * 2;
+      };
 
-        // Scroll element into view if needed
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      const preferred = step.position;
+      const fallbackOrder: TourStep["position"][] = [
+        preferred,
+        "bottom",
+        "top",
+        "right",
+        "left",
+      ];
+      const chosen = fallbackOrder.find(canFit) ?? preferred;
+
+      let top = 0;
+      let left = 0;
+
+      switch (chosen) {
+        case "bottom":
+          top = rect.bottom + padding;
+          left = rect.left + rect.width / 2 - tooltipWidth / 2;
+          break;
+        case "top":
+          top = rect.top - tooltipHeight - padding;
+          left = rect.left + rect.width / 2 - tooltipWidth / 2;
+          break;
+        case "right":
+          top = rect.top + rect.height / 2 - tooltipHeight / 2;
+          left = rect.right + padding;
+          break;
+        case "left":
+          top = rect.top + rect.height / 2 - tooltipHeight / 2;
+          left = rect.left - tooltipWidth - padding;
+          break;
       }
+
+      // Clamp inside viewport so actions (ex: "Próximo") never ficam escondidos
+      top = clamp(top, padding, window.innerHeight - tooltipHeight - padding);
+      left = clamp(left, padding, window.innerWidth - tooltipWidth - padding);
+
+      setPosition({ top, left });
     };
 
-    // Delay to ensure DOM is ready
-    const timer = setTimeout(updatePosition, 100);
+    const raf = requestAnimationFrame(updatePosition);
     window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
 
     return () => {
-      clearTimeout(timer);
+      cancelAnimationFrame(raf);
       window.removeEventListener("resize", updatePosition);
-      document.body.style.overflow = "";
+      window.removeEventListener("scroll", updatePosition, true);
+
       // Remove all highlights
       tourSteps.forEach((step) => {
-        const el = document.querySelector(step.target) as HTMLElement;
+        const el = document.querySelector(step.target) as HTMLElement | null;
         if (el) {
           el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "relative");
           el.style.zIndex = "";
@@ -160,13 +189,8 @@ export const OnboardingTour = ({ onComplete, isOpen }: OnboardingTourProps) => {
 
       {/* Tooltip */}
       <Card
-        className={cn(
-          "fixed z-[10000] w-80 p-4 shadow-xl animate-fade-in border-primary/20",
-          step.position === "bottom" && "-translate-x-1/2",
-          step.position === "top" && "-translate-x-1/2 -translate-y-full",
-          step.position === "right" && "-translate-y-1/2",
-          step.position === "left" && "-translate-x-full -translate-y-1/2"
-        )}
+        ref={tooltipRef}
+        className="fixed z-[10000] w-80 p-4 shadow-xl animate-fade-in border-primary/20"
         style={{ top: position.top, left: position.left }}
       >
         <button
