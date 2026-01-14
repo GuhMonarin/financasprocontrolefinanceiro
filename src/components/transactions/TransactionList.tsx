@@ -34,12 +34,15 @@ export function TransactionList() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>();
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [filters, setFilters] = useState<TransactionFiltersState>({
-    search: '',
-    type: 'all',
-    categoryId: 'all',
-    month: 'all',
-    year: 'all',
+  const [filters, setFilters] = useState<TransactionFiltersState>(() => {
+    const now = new Date();
+    return {
+      search: '',
+      type: 'all',
+      categoryId: 'all',
+      month: String(now.getMonth()),
+      year: String(now.getFullYear()),
+    };
   });
 
   const getIcon = (iconName: string) => {
