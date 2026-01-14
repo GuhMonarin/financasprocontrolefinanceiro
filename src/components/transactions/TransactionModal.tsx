@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -148,6 +149,11 @@ export function TransactionModal({
           <DialogTitle>
             {transaction ? "Editar Transação" : "Nova Transação"}
           </DialogTitle>
+          <DialogDescription>
+            {transaction
+              ? "Edite os detalhes da transação abaixo."
+              : "Preencha os campos para adicionar uma nova transação."}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
