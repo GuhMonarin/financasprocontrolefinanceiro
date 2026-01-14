@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { checkRateLimit, RATE_LIMITS, RateLimitError } from '@/lib/rateLimiter';
+import { handleDatabaseError, logError } from '@/lib/errorHandler';
 
 export interface Category {
   id: string;
@@ -78,7 +79,9 @@ export function useCreateCategory() {
       if (error instanceof RateLimitError) {
         toast.error(error.message);
       } else {
-        toast.error('Erro ao criar categoria');
+        const message = handleDatabaseError(error, 'save');
+        logError(error, 'useCreateCategory');
+        toast.error(message);
       }
     },
   });
@@ -112,7 +115,9 @@ export function useUpdateCategory() {
       if (error instanceof RateLimitError) {
         toast.error(error.message);
       } else {
-        toast.error('Erro ao atualizar categoria');
+        const message = handleDatabaseError(error, 'update');
+        logError(error, 'useUpdateCategory');
+        toast.error(message);
       }
     },
   });
@@ -143,7 +148,9 @@ export function useDeleteCategory() {
       if (error instanceof RateLimitError) {
         toast.error(error.message);
       } else {
-        toast.error('Erro ao excluir categoria');
+        const message = handleDatabaseError(error, 'delete');
+        logError(error, 'useDeleteCategory');
+        toast.error(message);
       }
     },
   });

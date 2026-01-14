@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { checkRateLimit, RateLimitError, RATE_LIMITS } from '@/lib/rateLimiter';
+import { handleDatabaseError, logError } from '@/lib/errorHandler';
 
 export interface Budget {
   id: string;
@@ -127,7 +128,6 @@ export function useBudgetsWithSpent(month: number, year: number) {
 export function useCreateBudget() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (budget: { category_id: string; amount: number; month: number; year: number }) => {
@@ -153,17 +153,17 @@ export function useCreateBudget() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['budgets-with-spent'] });
-      toast({ title: 'Budget criado com sucesso!' });
+      toast.success('Budget criado com sucesso!');
     },
-    onError: (error: Error) => {
-      if (error.message.includes('duplicate key')) {
-        toast({ 
-          title: 'Erro', 
-          description: 'Já existe um budget para esta categoria neste mês.',
-          variant: 'destructive' 
-        });
+    onError: (error: unknown) => {
+      if (error instanceof RateLimitError) {
+        toast.error(error.message);
+      } else if (error instanceof Error && error.message.includes('duplicate key')) {
+        toast.error('Já existe um budget para esta categoria neste mês.');
       } else {
-        toast({ title: 'Erro ao criar budget', description: error.message, variant: 'destructive' });
+        const message = handleDatabaseError(error, 'save');
+        logError(error, 'useCreateBudget');
+        toast.error(message);
       }
     },
   });
@@ -172,7 +172,6 @@ export function useCreateBudget() {
 export function useUpdateBudget() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, amount }: { id: string; amount: number }) => {
@@ -194,10 +193,16 @@ export function useUpdateBudget() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['budgets-with-spent'] });
-      toast({ title: 'Budget atualizado com sucesso!' });
+      toast.success('Budget atualizado com sucesso!');
     },
-    onError: (error: Error) => {
-      toast({ title: 'Erro ao atualizar budget', description: error.message, variant: 'destructive' });
+    onError: (error: unknown) => {
+      if (error instanceof RateLimitError) {
+        toast.error(error.message);
+      } else {
+        const message = handleDatabaseError(error, 'update');
+        logError(error, 'useUpdateBudget');
+        toast.error(message);
+      }
     },
   });
 }
@@ -205,7 +210,6 @@ export function useUpdateBudget() {
 export function useDeleteBudget() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -224,10 +228,16 @@ export function useDeleteBudget() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['budgets-with-spent'] });
-      toast({ title: 'Budget excluído com sucesso!' });
+      toast.success('Budget excluído com sucesso!');
     },
-    onError: (error: Error) => {
-      toast({ title: 'Erro ao excluir budget', description: error.message, variant: 'destructive' });
+    onError: (error: unknown) => {
+      if (error instanceof RateLimitError) {
+        toast.error(error.message);
+      } else {
+        const message = handleDatabaseError(error, 'delete');
+        logError(error, 'useDeleteBudget');
+        toast.error(message);
+      }
     },
   });
 }
