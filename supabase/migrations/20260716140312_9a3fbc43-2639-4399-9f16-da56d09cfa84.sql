@@ -1,0 +1,1 @@
+DELETE FROM public.transactions WHERE type = 'expense' AND date >= '2026-08-01' AND (is_recurring = false OR recurrence_type <> 'fixed');
