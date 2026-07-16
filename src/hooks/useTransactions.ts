@@ -222,7 +222,7 @@ export function useUpdateTransaction() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Transaction> & { id: string }) => {
+    mutationFn: async ({ id, category, ...updates }: Partial<Transaction> & { id: string }) => {
       if (!user) throw new Error('User not authenticated');
       // Check rate limit for DB writes - use user ID
       checkRateLimit(user.id, 'db-write', RATE_LIMITS.DB_WRITE);
