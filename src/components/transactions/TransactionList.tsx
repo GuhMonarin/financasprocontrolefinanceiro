@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Pencil, Trash2, Plus, Loader2, Repeat, CreditCard } from 'lucide-react';
+import { Pencil, Trash2, Plus, Loader2, Repeat, CreditCard, CircleDollarSign, CircleCheck, Clock3 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { TransactionModal } from './TransactionModal';
 import { TransactionFilters, TransactionFiltersState } from './TransactionFilters';
-import { useDeleteTransaction, Transaction } from '@/hooks/useTransactions';
-import { useTransactionsPaginated } from '@/hooks/useTransactionsPaginated';
+import { useDeleteTransaction, useSetTransactionPaid, Transaction } from '@/hooks/useTransactions';
+import { useExpensePaymentSummary, useTransactionsPaginated } from '@/hooks/useTransactionsPaginated';
 import { useCategories } from '@/hooks/useCategories';
 import * as Icons from 'lucide-react';
 import {
@@ -30,6 +31,7 @@ const formatCurrency = (value: number): string => {
 export function TransactionList() {
   const { data: categories = [] } = useCategories();
   const deleteTransaction = useDeleteTransaction();
+  const setTransactionPaid = useSetTransactionPaid();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
   const [modalOpen, setModalOpen] = useState(false);
@@ -62,6 +64,7 @@ export function TransactionList() {
     isFetchingNextPage,
     isLoading,
   } = useTransactionsPaginated(paginatedFilters);
+  const { data: paymentSummary } = useExpensePaymentSummary(paginatedFilters);
 
   // Flatten all pages into a single array
   const transactions = useMemo(() => 
@@ -157,6 +160,44 @@ export function TransactionList() {
         categories={categories} 
       />
 
+      {filters.month !== 'all' && filters.year !== 'all' && filters.type !== 'income' && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Card className="p-4 card-shadow">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <CircleDollarSign className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">Despesas do mês</p>
+                <p className="text-xl font-bold">{formatCurrency(paymentSummary?.total ?? 0)}</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4 card-shadow">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+                <CircleCheck className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">Pago</p>
+                <p className="text-xl font-bold text-success">{formatCurrency(paymentSummary?.paid ?? 0)}</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4 card-shadow">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning">
+                <Clock3 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">Falta pagar</p>
+                <p className="text-xl font-bold text-warning">{formatCurrency(paymentSummary?.pending ?? 0)}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {transactions.length === 0 ? (
         <div className="bg-card rounded-2xl p-12 card-shadow text-center">
           <p className="text-muted-foreground">Nenhuma transação encontrada</p>
@@ -208,6 +249,12 @@ export function TransactionList() {
                             {transaction.current_installment}/{transaction.installment_count}
                           </Badge>
                         )}
+                        {transaction.type === 'expense' && (
+                          <Badge variant={transaction.is_paid ? 'secondary' : 'outline'} className="gap-1 text-xs px-2 py-0.5">
+                            {transaction.is_paid ? <CircleCheck className="w-3 h-3" /> : <Clock3 className="w-3 h-3" />}
+                            {transaction.is_paid ? 'Pago' : 'A pagar'}
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">{transaction.category?.name || 'Sem categoria'}</p>
                     </div>
@@ -220,6 +267,17 @@ export function TransactionList() {
                         )}>
                           {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Number(transaction.amount))}
                         </span>
+                        {transaction.type === 'expense' && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="mt-1 h-auto p-0 text-xs"
+                            disabled={setTransactionPaid.isPending}
+                            onClick={() => setTransactionPaid.mutate({ id: transaction.id, isPaid: !transaction.is_paid })}
+                          >
+                            {transaction.is_paid ? 'Voltar para a pagar' : 'Marcar como pago'}
+                          </Button>
+                        )}
                       </div>
                       
                       <div className="flex items-center gap-1">

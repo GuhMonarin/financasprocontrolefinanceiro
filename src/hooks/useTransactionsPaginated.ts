@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Transaction } from './useTransactions';
@@ -84,5 +84,56 @@ export function useTransactionsPaginated(filters?: {
     enabled: !!user,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (garbage collection)
+  });
+}
+
+export function useExpensePaymentSummary(filters?: {
+  month?: number;
+  year?: number;
+  type?: 'income' | 'expense' | 'all';
+  categoryId?: string;
+  search?: string;
+}) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['expense-payment-summary', user?.id, filters],
+    queryFn: async () => {
+      if (!user || filters?.month === undefined || filters?.year === undefined) {
+        return { total: 0, paid: 0, pending: 0 };
+      }
+
+      checkRateLimit(user.id, 'db-read', RATE_LIMITS.DB_READ);
+
+      const startDate = new Date(filters.year, filters.month, 1).toISOString().split('T')[0];
+      const endDate = new Date(filters.year, filters.month + 1, 0).toISOString().split('T')[0];
+      let query = supabase
+        .from('transactions')
+        .select('amount, is_paid')
+        .eq('user_id', user.id)
+        .eq('type', 'expense')
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      if (filters.categoryId && filters.categoryId !== 'all') {
+        query = query.eq('category_id', filters.categoryId);
+      }
+
+      if (filters.search) {
+        query = query.ilike('description', `%${filters.search}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const total = data.reduce((sum, item) => sum + Number(item.amount), 0);
+      const paid = data
+        .filter((item) => item.is_paid)
+        .reduce((sum, item) => sum + Number(item.amount), 0);
+
+      return { total, paid, pending: total - paid };
+    },
+    enabled: !!user && filters?.month !== undefined && filters?.year !== undefined && filters?.type !== 'income',
+    staleTime: 30 * 1000,
   });
 }
