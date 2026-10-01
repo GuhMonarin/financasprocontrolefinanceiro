@@ -48,7 +48,7 @@ const months = [
   { value: '11', label: 'Dezembro' },
 ];
 
-const years = ['2024', '2025', '2026'];
+const years = ['2024', '2025', '2026', '2027'];
 
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {

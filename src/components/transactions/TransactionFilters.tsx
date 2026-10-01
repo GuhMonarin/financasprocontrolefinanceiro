@@ -45,7 +45,7 @@ const months = [
   { value: '11', label: 'Dezembro' },
 ];
 
-const years = ['all', '2024', '2025', '2026'];
+const years = ['all', '2024', '2025', '2026', '2027'];
 
 export function TransactionFilters({ filters, onFiltersChange, categories }: TransactionFiltersProps) {
   const hasActiveFilters = 
