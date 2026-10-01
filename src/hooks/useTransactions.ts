@@ -21,6 +21,7 @@ export interface Transaction {
   installment_count: number | null;
   current_installment: number | null;
   recurring_group_id: string | null;
+  is_paid: boolean;
   category?: Category | null;
 }
 
@@ -199,6 +200,8 @@ export function useCreateTransaction() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['expense-payment-summary'] });
       if (variables.is_recurring && variables.recurrence_type === 'installment') {
         toast.success(`${variables.installment_count} parcelas criadas!`);
       } else {
@@ -239,6 +242,8 @@ export function useUpdateTransaction() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['expense-payment-summary'] });
       toast.success('Transação atualizada!');
     },
     onError: (error) => {
@@ -247,6 +252,45 @@ export function useUpdateTransaction() {
       } else {
         const message = handleDatabaseError(error, 'update');
         logError(error, 'useUpdateTransaction');
+        toast.error(message);
+      }
+    },
+  });
+}
+
+export function useSetTransactionPaid() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ id, isPaid }: { id: string; isPaid: boolean }) => {
+      if (!user) throw new Error('User not authenticated');
+      checkRateLimit(user.id, 'db-write', RATE_LIMITS.DB_WRITE);
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .update({ is_paid: isPaid })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .eq('type', 'expense')
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['expense-payment-summary'] });
+      toast.success(variables.isPaid ? 'Despesa marcada como paga!' : 'Despesa marcada como a pagar!');
+    },
+    onError: (error) => {
+      if (error instanceof RateLimitError) {
+        toast.error(error.message);
+      } else {
+        const message = handleDatabaseError(error, 'update');
+        logError(error, 'useSetTransactionPaid');
         toast.error(message);
       }
     },
@@ -272,6 +316,8 @@ export function useDeleteTransaction() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['expense-payment-summary'] });
       toast.success('Transação excluída!');
     },
     onError: (error) => {

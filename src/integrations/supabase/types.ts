@@ -155,6 +155,7 @@ export type Database = {
           description: string
           id: string
           installment_count: number | null
+          is_paid: boolean
           is_recurring: boolean
           recurrence_type: string | null
           recurring_group_id: string | null
@@ -171,6 +172,7 @@ export type Database = {
           description: string
           id?: string
           installment_count?: number | null
+          is_paid?: boolean
           is_recurring?: boolean
           recurrence_type?: string | null
           recurring_group_id?: string | null
@@ -187,6 +189,7 @@ export type Database = {
           description?: string
           id?: string
           installment_count?: number | null
+          is_paid?: boolean
           is_recurring?: boolean
           recurrence_type?: string | null
           recurring_group_id?: string | null
