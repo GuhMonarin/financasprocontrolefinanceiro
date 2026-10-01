@@ -200,6 +200,8 @@ export function useCreateTransaction() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['expense-payment-summary'] });
       if (variables.is_recurring && variables.recurrence_type === 'installment') {
         toast.success(`${variables.installment_count} parcelas criadas!`);
       } else {
@@ -241,6 +243,7 @@ export function useUpdateTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['expense-payment-summary'] });
       toast.success('Transação atualizada!');
     },
     onError: (error) => {
