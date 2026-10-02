@@ -66,14 +66,16 @@ const formatDate = (dateStr: string): string => {
 const SummaryCards = memo(function SummaryCards({ 
   totalIncome, 
   totalExpense, 
-  balance 
+  balance,
+  pendingExpense
 }: { 
   totalIncome: number; 
   totalExpense: number; 
   balance: number;
+  pendingExpense: number;
 }) {
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       <Card className="p-4 sm:p-5 card-shadow">
         <p className="text-sm text-muted-foreground mb-1">Receitas</p>
         <p className="text-xl sm:text-2xl font-bold text-income">{formatCurrency(totalIncome)}</p>
@@ -82,6 +84,16 @@ const SummaryCards = memo(function SummaryCards({
       <Card className="p-4 sm:p-5 card-shadow">
         <p className="text-sm text-muted-foreground mb-1">Despesas</p>
         <p className="text-xl sm:text-2xl font-bold text-expense">{formatCurrency(totalExpense)}</p>
+      </Card>
+
+      <Card className="p-4 sm:p-5 card-shadow">
+        <p className="text-sm text-muted-foreground mb-1">Falta Pagar</p>
+        <p className={`text-xl sm:text-2xl font-bold ${pendingExpense > 0 ? 'text-expense' : 'text-income'}`}>
+          {formatCurrency(pendingExpense)}
+        </p>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
+          {pendingExpense > 0 ? 'Despesas ainda em aberto' : 'Tudo pago neste mês!'}
+        </p>
       </Card>
 
       <Card className="p-4 sm:p-5 card-shadow">
