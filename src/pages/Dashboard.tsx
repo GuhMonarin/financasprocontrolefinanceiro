@@ -1,4 +1,4 @@
-import { Wallet, TrendingUp, TrendingDown, Plus, Loader2 } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, Clock3, Plus, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -51,6 +51,10 @@ const Dashboard = () => {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
+  const pendingExpense = transactions
+    .filter((t) => t.type === "expense" && !t.is_paid)
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
   const balance = totalIncome - totalExpense;
 
   const monthName = new Date().toLocaleDateString("pt-BR", { month: "long" });
@@ -93,7 +97,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-slide-up" data-tour="stats">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 animate-slide-up" data-tour="stats">
           <StatCard
             title="Saldo Atual"
             value={formatCurrency(balance)}
@@ -110,6 +114,12 @@ const Dashboard = () => {
             title="Despesas do Mês"
             value={formatCurrency(totalExpense)}
             icon={<TrendingDown className="w-6 h-6" />}
+            variant="expense"
+          />
+          <StatCard
+            title="Falta Pagar"
+            value={formatCurrency(pendingExpense)}
+            icon={<Clock3 className="w-6 h-6" />}
             variant="expense"
           />
         </div>

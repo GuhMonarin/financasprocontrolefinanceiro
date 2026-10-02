@@ -66,14 +66,16 @@ const formatDate = (dateStr: string): string => {
 const SummaryCards = memo(function SummaryCards({ 
   totalIncome, 
   totalExpense, 
-  balance 
+  balance,
+  pendingExpense
 }: { 
   totalIncome: number; 
   totalExpense: number; 
   balance: number;
+  pendingExpense: number;
 }) {
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       <Card className="p-4 sm:p-5 card-shadow">
         <p className="text-sm text-muted-foreground mb-1">Receitas</p>
         <p className="text-xl sm:text-2xl font-bold text-income">{formatCurrency(totalIncome)}</p>
@@ -82,6 +84,16 @@ const SummaryCards = memo(function SummaryCards({
       <Card className="p-4 sm:p-5 card-shadow">
         <p className="text-sm text-muted-foreground mb-1">Despesas</p>
         <p className="text-xl sm:text-2xl font-bold text-expense">{formatCurrency(totalExpense)}</p>
+      </Card>
+
+      <Card className="p-4 sm:p-5 card-shadow">
+        <p className="text-sm text-muted-foreground mb-1">Falta Pagar</p>
+        <p className={`text-xl sm:text-2xl font-bold ${pendingExpense > 0 ? 'text-expense' : 'text-income'}`}>
+          {formatCurrency(pendingExpense)}
+        </p>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
+          {pendingExpense > 0 ? 'Despesas ainda em aberto' : 'Tudo pago neste mês!'}
+        </p>
       </Card>
 
       <Card className="p-4 sm:p-5 card-shadow">
@@ -241,7 +253,7 @@ export function ReportsView() {
   const isLoading = activeTab === 'monthly' ? isLoadingSingle : isLoadingMulti;
 
   // Memoized calculations for single month
-  const { totalIncome, totalExpense, balance, expenseCategoryData, incomeCategoryData } = useMemo(() => {
+  const { totalIncome, totalExpense, balance, pendingExpense, expenseCategoryData, incomeCategoryData } = useMemo(() => {
     const totalIncome = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + Number(t.amount), 0);
@@ -276,6 +288,9 @@ export function ReportsView() {
       totalIncome,
       totalExpense,
       balance: totalIncome - totalExpense,
+      pendingExpense: transactions
+        .filter(t => t.type === 'expense' && !t.is_paid)
+        .reduce((sum, t) => sum + Number(t.amount), 0),
       expenseCategoryData: Object.values(expensesByCategory).sort((a, b) => b.value - a.value),
       incomeCategoryData: Object.values(incomeByCategory).sort((a, b) => b.value - a.value),
     };
@@ -352,7 +367,7 @@ export function ReportsView() {
 
         {/* Monthly View */}
         <TabsContent value="monthly" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-          <SummaryCards totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} />
+          <SummaryCards totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} pendingExpense={pendingExpense} />
 
           {/* Expenses Section */}
           {expenseCategoryData.length > 0 ? (
@@ -432,6 +447,7 @@ export function ReportsView() {
                       <TableHead>Mês</TableHead>
                       <TableHead className="text-right">Receitas</TableHead>
                       <TableHead className="text-right">Despesas</TableHead>
+                      <TableHead className="text-right">Falta Pagar</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -441,6 +457,13 @@ export function ReportsView() {
                         <TableCell className="font-medium">{m.label}</TableCell>
                         <TableCell className="text-right text-income">{formatCurrency(m.income)}</TableCell>
                         <TableCell className="text-right text-expense">{formatCurrency(m.expense)}</TableCell>
+                        <TableCell className="text-right text-expense">
+                          {formatCurrency(
+                            m.transactions
+                              .filter(t => t.type === 'expense' && !t.is_paid)
+                              .reduce((sum, t) => sum + Number(t.amount), 0)
+                          )}
+                        </TableCell>
                         <TableCell className={`text-right font-semibold ${m.balance >= 0 ? 'text-income' : 'text-expense'}`}>
                           {formatCurrency(m.balance)}
                         </TableCell>
@@ -491,6 +514,14 @@ export function ReportsView() {
                           <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5">
                             <CreditCard className="w-3 h-3" />
                             {t.current_installment}/{t.installment_count}
+                          </Badge>
+                        )}
+                        {t.type === 'expense' && (
+                          <Badge
+                            variant={t.is_paid ? 'secondary' : 'outline'}
+                            className={`gap-1 text-xs px-2 py-0.5 ${t.is_paid ? 'text-income' : 'text-expense'}`}
+                          >
+                            {t.is_paid ? 'Pago' : 'A pagar'}
                           </Badge>
                         )}
                       </div>
