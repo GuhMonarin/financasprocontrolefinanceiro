@@ -447,6 +447,7 @@ export function ReportsView() {
                       <TableHead>Mês</TableHead>
                       <TableHead className="text-right">Receitas</TableHead>
                       <TableHead className="text-right">Despesas</TableHead>
+                      <TableHead className="text-right">Falta Pagar</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -456,6 +457,13 @@ export function ReportsView() {
                         <TableCell className="font-medium">{m.label}</TableCell>
                         <TableCell className="text-right text-income">{formatCurrency(m.income)}</TableCell>
                         <TableCell className="text-right text-expense">{formatCurrency(m.expense)}</TableCell>
+                        <TableCell className="text-right text-expense">
+                          {formatCurrency(
+                            m.transactions
+                              .filter(t => t.type === 'expense' && !t.is_paid)
+                              .reduce((sum, t) => sum + Number(t.amount), 0)
+                          )}
+                        </TableCell>
                         <TableCell className={`text-right font-semibold ${m.balance >= 0 ? 'text-income' : 'text-expense'}`}>
                           {formatCurrency(m.balance)}
                         </TableCell>
