@@ -516,6 +516,14 @@ export function ReportsView() {
                             {t.current_installment}/{t.installment_count}
                           </Badge>
                         )}
+                        {t.type === 'expense' && (
+                          <Badge
+                            variant={t.is_paid ? 'secondary' : 'outline'}
+                            className={`gap-1 text-xs px-2 py-0.5 ${t.is_paid ? 'text-income' : 'text-expense'}`}
+                          >
+                            {t.is_paid ? 'Pago' : 'A pagar'}
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className={`text-right font-medium text-sm ${selectedCategoryType === 'expense' ? 'text-expense' : 'text-income'}`}>
