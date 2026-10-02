@@ -253,7 +253,7 @@ export function ReportsView() {
   const isLoading = activeTab === 'monthly' ? isLoadingSingle : isLoadingMulti;
 
   // Memoized calculations for single month
-  const { totalIncome, totalExpense, balance, expenseCategoryData, incomeCategoryData } = useMemo(() => {
+  const { totalIncome, totalExpense, balance, pendingExpense, expenseCategoryData, incomeCategoryData } = useMemo(() => {
     const totalIncome = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + Number(t.amount), 0);
@@ -288,6 +288,9 @@ export function ReportsView() {
       totalIncome,
       totalExpense,
       balance: totalIncome - totalExpense,
+      pendingExpense: transactions
+        .filter(t => t.type === 'expense' && !t.is_paid)
+        .reduce((sum, t) => sum + Number(t.amount), 0),
       expenseCategoryData: Object.values(expensesByCategory).sort((a, b) => b.value - a.value),
       incomeCategoryData: Object.values(incomeByCategory).sort((a, b) => b.value - a.value),
     };
@@ -364,7 +367,7 @@ export function ReportsView() {
 
         {/* Monthly View */}
         <TabsContent value="monthly" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-          <SummaryCards totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} />
+          <SummaryCards totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} pendingExpense={pendingExpense} />
 
           {/* Expenses Section */}
           {expenseCategoryData.length > 0 ? (
