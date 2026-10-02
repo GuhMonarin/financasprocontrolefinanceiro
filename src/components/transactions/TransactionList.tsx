@@ -259,10 +259,10 @@ export function TransactionList() {
                       <p className="text-sm text-muted-foreground">{transaction.category?.name || 'Sem categoria'}</p>
                     </div>
                     
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
+                    <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+                      <div className="flex min-w-max flex-col items-end gap-1 text-right">
                         <span className={cn(
-                          "font-semibold text-lg",
+                          "block font-semibold text-lg",
                           transaction.type === 'income' ? "text-income" : "text-expense"
                         )}>
                           {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Number(transaction.amount))}
@@ -271,7 +271,7 @@ export function TransactionList() {
                           <Button
                             variant="link"
                             size="sm"
-                            className="mt-1 h-auto p-0 text-xs"
+                            className="h-auto min-h-0 p-0 text-xs"
                             disabled={setTransactionPaid.isPending}
                             onClick={() => setTransactionPaid.mutate({ id: transaction.id, isPaid: !transaction.is_paid })}
                           >
