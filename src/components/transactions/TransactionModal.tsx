@@ -60,6 +60,7 @@ export function TransactionModal({
   );
   const [installmentCount, setInstallmentCount] = useState("2");
   const [fixedFrequency, setFixedFrequency] = useState<"daily" | "weekly" | "monthly" | "yearly">("monthly");
+  const [isPaid, setIsPaid] = useState(false);
 
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
