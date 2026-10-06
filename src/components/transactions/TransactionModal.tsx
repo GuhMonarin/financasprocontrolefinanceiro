@@ -60,6 +60,7 @@ export function TransactionModal({
   );
   const [installmentCount, setInstallmentCount] = useState("2");
   const [fixedFrequency, setFixedFrequency] = useState<"daily" | "weekly" | "monthly" | "yearly">("monthly");
+  const [isPaid, setIsPaid] = useState(false);
 
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
@@ -77,6 +78,7 @@ export function TransactionModal({
       setRecurrenceType("fixed");
       setInstallmentCount("2");
       setFixedFrequency("monthly");
+      setIsPaid(transaction.type === "expense" ? transaction.is_paid : false);
     } else {
       setType("expense");
       setAmount("");
@@ -87,6 +89,7 @@ export function TransactionModal({
       setRecurrenceType("fixed");
       setInstallmentCount("2");
       setFixedFrequency("monthly");
+      setIsPaid(false);
     }
   }, [transaction, open]);
 
@@ -109,6 +112,7 @@ export function TransactionModal({
       recurrence_type: isRecurring ? recurrenceType : null,
       installment_count: parsedInstallments,
       fixed_frequency: isRecurring && recurrenceType === "fixed" ? fixedFrequency : null,
+      is_paid: type === "expense" ? isPaid : undefined,
     };
 
     const result = transactionFormSchema.safeParse(data);
@@ -125,6 +129,7 @@ export function TransactionModal({
         description: data.description,
         date: data.date,
         type: data.type,
+        is_paid: data.is_paid,
       });
     } else {
       await createTransaction.mutateAsync(data);
@@ -243,6 +248,23 @@ export function TransactionModal({
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
+
+          {type === "expense" && (
+            <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-muted/30">
+              <Checkbox
+                id="is-paid"
+                checked={isPaid}
+                onCheckedChange={(checked) => setIsPaid(checked === true)}
+              />
+              <Label
+                htmlFor="is-paid"
+                className="cursor-pointer font-medium"
+              >
+                Despesa já foi paga
+              </Label>
+            </div>
+          )}
+
 
           {/* Recurring options - only for new transactions */}
           {!transaction && (

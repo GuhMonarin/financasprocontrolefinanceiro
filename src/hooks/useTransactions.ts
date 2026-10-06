@@ -83,6 +83,7 @@ export function useCreateTransaction() {
       recurrence_type?: 'fixed' | 'installment' | null;
       installment_count?: number | null;
       fixed_frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly' | null;
+      is_paid?: boolean;
     }) => {
       if (!user) throw new Error('User not authenticated');
 
@@ -109,6 +110,7 @@ export function useCreateTransaction() {
             installment_count,
             current_installment: i + 1,
             recurring_group_id: recurringGroupId,
+            is_paid: i === 0 ? transaction.is_paid === true : false,
             date: installmentDate.toISOString().split('T')[0],
             description: `${transaction.description} (${i + 1}/${installment_count})`,
           });
@@ -163,6 +165,7 @@ export function useCreateTransaction() {
             is_recurring: true,
             recurrence_type: 'fixed' as const,
             recurring_group_id: recurringGroupId,
+            is_paid: i === 0 ? transaction.is_paid === true : false,
             date: transactionDate.toISOString().split('T')[0],
           });
         }
