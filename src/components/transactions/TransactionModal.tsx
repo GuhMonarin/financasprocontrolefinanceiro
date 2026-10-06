@@ -112,6 +112,7 @@ export function TransactionModal({
       recurrence_type: isRecurring ? recurrenceType : null,
       installment_count: parsedInstallments,
       fixed_frequency: isRecurring && recurrenceType === "fixed" ? fixedFrequency : null,
+      is_paid: type === "expense" ? isPaid : undefined,
     };
 
     const result = transactionFormSchema.safeParse(data);
@@ -128,6 +129,7 @@ export function TransactionModal({
         description: data.description,
         date: data.date,
         type: data.type,
+        is_paid: data.is_paid,
       });
     } else {
       await createTransaction.mutateAsync(data);
