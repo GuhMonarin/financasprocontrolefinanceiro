@@ -78,6 +78,7 @@ export function TransactionModal({
       setRecurrenceType("fixed");
       setInstallmentCount("2");
       setFixedFrequency("monthly");
+      setIsPaid(transaction.type === "expense" ? transaction.is_paid : false);
     } else {
       setType("expense");
       setAmount("");
@@ -88,6 +89,7 @@ export function TransactionModal({
       setRecurrenceType("fixed");
       setInstallmentCount("2");
       setFixedFrequency("monthly");
+      setIsPaid(false);
     }
   }, [transaction, open]);
 
