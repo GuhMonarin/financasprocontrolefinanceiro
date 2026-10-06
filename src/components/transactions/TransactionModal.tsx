@@ -249,6 +249,23 @@ export function TransactionModal({
             />
           </div>
 
+          {type === "expense" && (
+            <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-muted/30">
+              <Checkbox
+                id="is-paid"
+                checked={isPaid}
+                onCheckedChange={(checked) => setIsPaid(checked === true)}
+              />
+              <Label
+                htmlFor="is-paid"
+                className="cursor-pointer font-medium"
+              >
+                Despesa já foi paga
+              </Label>
+            </div>
+          )}
+
+
           {/* Recurring options - only for new transactions */}
           {!transaction && (
             <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
