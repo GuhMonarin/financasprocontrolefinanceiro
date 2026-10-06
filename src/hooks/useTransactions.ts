@@ -165,6 +165,7 @@ export function useCreateTransaction() {
             is_recurring: true,
             recurrence_type: 'fixed' as const,
             recurring_group_id: recurringGroupId,
+            is_paid: i === 0 ? transaction.is_paid === true : false,
             date: transactionDate.toISOString().split('T')[0],
           });
         }
