@@ -1,6 +1,7 @@
 import { Search, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -15,12 +16,15 @@ interface Category {
   type: string;
 }
 
+export type PaymentFilter = 'all' | 'pending' | 'paid';
+
 export interface TransactionFiltersState {
   search: string;
   type: 'all' | 'income' | 'expense';
   categoryId: string;
   month: string;
   year: string;
+  payment: PaymentFilter;
 }
 
 interface TransactionFiltersProps {
@@ -47,13 +51,20 @@ const months = [
 
 const years = ['all', '2024', '2025', '2026', '2027'];
 
+const paymentOptions: { value: PaymentFilter; label: string }[] = [
+  { value: 'all', label: 'Todas' },
+  { value: 'pending', label: 'Somente a pagar' },
+  { value: 'paid', label: 'Pagas' },
+];
+
 export function TransactionFilters({ filters, onFiltersChange, categories }: TransactionFiltersProps) {
   const hasActiveFilters = 
     filters.search !== '' || 
     filters.type !== 'all' || 
     filters.categoryId !== 'all' || 
     filters.month !== 'all' || 
-    filters.year !== 'all';
+    filters.year !== 'all' ||
+    filters.payment !== 'all';
 
   const clearFilters = () => {
     onFiltersChange({
@@ -62,6 +73,7 @@ export function TransactionFilters({ filters, onFiltersChange, categories }: Tra
       categoryId: 'all',
       month: 'all',
       year: 'all',
+      payment: 'all',
     });
   };
 
@@ -83,11 +95,37 @@ export function TransactionFilters({ filters, onFiltersChange, categories }: Tra
           />
         </div>
 
+        {/* Payment Status Quick Filter */}
+        {filters.type !== 'income' && (
+          <div className="inline-flex items-center gap-1 self-center rounded-lg border border-border bg-muted/40 p-1">
+            {paymentOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onFiltersChange({ ...filters, payment: option.value })}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                  filters.payment === option.value
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Type Filter */}
         <Select
           value={filters.type}
           onValueChange={(value: 'all' | 'income' | 'expense') => 
-            onFiltersChange({ ...filters, type: value, categoryId: 'all' })
+            onFiltersChange({
+              ...filters,
+              type: value,
+              categoryId: 'all',
+              payment: value === 'income' ? 'all' : filters.payment,
+            })
           }
         >
           <SelectTrigger className="w-[150px]">

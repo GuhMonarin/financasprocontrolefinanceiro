@@ -19,6 +19,7 @@ export function useTransactionsPaginated(filters?: {
   type?: 'income' | 'expense' | 'all';
   categoryId?: string;
   search?: string;
+  payment?: 'all' | 'pending' | 'paid';
 }) {
   const { user } = useAuth();
 
@@ -67,6 +68,11 @@ export function useTransactionsPaginated(filters?: {
         query = query.ilike('description', `%${filters.search}%`);
       }
 
+      // Payment status only applies to expenses
+      if (filters?.payment && filters.payment !== 'all') {
+        query = query.eq('type', 'expense').eq('is_paid', filters.payment === 'paid');
+      }
+
       const { data, error, count } = await query;
 
       if (error) throw error;
@@ -93,11 +99,22 @@ export function useExpensePaymentSummary(filters?: {
   type?: 'income' | 'expense' | 'all';
   categoryId?: string;
   search?: string;
+  payment?: 'all' | 'pending' | 'paid';
 }) {
   const { user } = useAuth();
 
+  // The summary always reflects the whole month, so the payment-status
+  // quick filter is deliberately left out of the query key.
+  const summaryFilters = {
+    month: filters?.month,
+    year: filters?.year,
+    type: filters?.type,
+    categoryId: filters?.categoryId,
+    search: filters?.search,
+  };
+
   return useQuery({
-    queryKey: ['expense-payment-summary', user?.id, filters],
+    queryKey: ['expense-payment-summary', user?.id, summaryFilters],
     queryFn: async () => {
       if (!user || filters?.month === undefined || filters?.year === undefined) {
         return { total: 0, paid: 0, pending: 0 };
