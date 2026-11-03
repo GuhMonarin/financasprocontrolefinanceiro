@@ -45,6 +45,7 @@ export function TransactionList() {
       categoryId: 'all',
       month: String(now.getMonth()),
       year: String(now.getFullYear()),
+      payment: 'all',
     };
   });
 
@@ -55,6 +56,7 @@ export function TransactionList() {
     type: filters.type as 'income' | 'expense' | 'all',
     categoryId: filters.categoryId,
     search: filters.search,
+    payment: filters.payment,
   }), [filters]);
 
   const {
@@ -200,7 +202,13 @@ export function TransactionList() {
 
       {transactions.length === 0 ? (
         <div className="bg-card rounded-2xl p-12 card-shadow text-center">
-          <p className="text-muted-foreground">Nenhuma transação encontrada</p>
+          <p className="text-muted-foreground">
+            {filters.payment === 'pending'
+              ? 'Nenhuma despesa a pagar neste período'
+              : filters.payment === 'paid'
+                ? 'Nenhuma despesa paga neste período'
+                : 'Nenhuma transação encontrada'}
+          </p>
           <Button onClick={() => setModalOpen(true)} variant="outline" className="mt-4">
             Adicionar primeira transação
           </Button>
