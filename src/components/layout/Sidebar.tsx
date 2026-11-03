@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { PlanBadge } from '@/components/PlanBadge';
+import { InstallAppButton } from '@/components/pwa/InstallAppButton';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -147,6 +148,10 @@ export function Sidebar() {
               <NavigationContent />
             </div>
             
+            <div className="px-6 pb-4">
+              <InstallAppButton className="w-full" />
+            </div>
+
             <UserSection />
           </DrawerContent>
         </Drawer>
@@ -186,6 +191,10 @@ export function Sidebar() {
             );
           })}
         </nav>
+
+        <div className="px-4 pb-2">
+          <InstallAppButton className="w-full" />
+        </div>
 
         {/* Desktop User Section */}
         <div className="p-4 border-t border-border">
