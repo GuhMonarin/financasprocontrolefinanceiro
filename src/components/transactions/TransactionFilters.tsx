@@ -99,7 +99,12 @@ export function TransactionFilters({ filters, onFiltersChange, categories }: Tra
         <Select
           value={filters.type}
           onValueChange={(value: 'all' | 'income' | 'expense') => 
-            onFiltersChange({ ...filters, type: value, categoryId: 'all' })
+            onFiltersChange({
+              ...filters,
+              type: value,
+              categoryId: 'all',
+              payment: value === 'income' ? 'all' : filters.payment,
+            })
           }
         >
           <SelectTrigger className="w-[150px]">
