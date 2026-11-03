@@ -1,6 +1,7 @@
 import { Search, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -15,12 +16,15 @@ interface Category {
   type: string;
 }
 
+export type PaymentFilter = 'all' | 'pending' | 'paid';
+
 export interface TransactionFiltersState {
   search: string;
   type: 'all' | 'income' | 'expense';
   categoryId: string;
   month: string;
   year: string;
+  payment: PaymentFilter;
 }
 
 interface TransactionFiltersProps {
@@ -47,13 +51,20 @@ const months = [
 
 const years = ['all', '2024', '2025', '2026', '2027'];
 
+const paymentOptions: { value: PaymentFilter; label: string }[] = [
+  { value: 'all', label: 'Todas' },
+  { value: 'pending', label: 'Somente a pagar' },
+  { value: 'paid', label: 'Pagas' },
+];
+
 export function TransactionFilters({ filters, onFiltersChange, categories }: TransactionFiltersProps) {
   const hasActiveFilters = 
     filters.search !== '' || 
     filters.type !== 'all' || 
     filters.categoryId !== 'all' || 
     filters.month !== 'all' || 
-    filters.year !== 'all';
+    filters.year !== 'all' ||
+    filters.payment !== 'all';
 
   const clearFilters = () => {
     onFiltersChange({
@@ -62,6 +73,7 @@ export function TransactionFilters({ filters, onFiltersChange, categories }: Tra
       categoryId: 'all',
       month: 'all',
       year: 'all',
+      payment: 'all',
     });
   };
 
